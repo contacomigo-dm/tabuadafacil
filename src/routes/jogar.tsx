@@ -130,10 +130,13 @@ function PlayPage() {
       let newCorrect = correctCount;
       let newWrong = wrongCount;
       let newBest = bestStreak;
+      let newTotalCorrect = totalCorrect;
+      let newTotalWrong = totalWrong;
 
       if (isCorrect) {
         newStreak = streak + 1;
         newCorrect = correctCount + 1;
+        newTotalCorrect = totalCorrect + 1;
         if (newStreak > newBest) newBest = newStreak;
         const def = getLevel(level);
         if (newStreak >= def.streakRequired && level < LEVELS.length) {
@@ -150,6 +153,7 @@ function PlayPage() {
       } else {
         newStreak = 0;
         newWrong = wrongCount + 1;
+        newTotalWrong = totalWrong + 1;
       }
 
       setStreak(newStreak);
@@ -157,13 +161,15 @@ function PlayPage() {
       setCorrectCount(newCorrect);
       setWrongCount(newWrong);
       setBestStreak(newBest);
+      setTotalCorrect(newTotalCorrect);
+      setTotalWrong(newTotalWrong);
 
       updateStudent(studentId, {
         current_level: newLevel,
         current_streak: newStreak,
         best_streak: newBest,
-        total_correct: (await currentTotal(studentId, "total_correct")) + (isCorrect ? 1 : 0),
-        total_wrong: (await currentTotal(studentId, "total_wrong")) + (isCorrect ? 0 : 1),
+        total_correct: newTotalCorrect,
+        total_wrong: newTotalWrong,
       }).catch(() => {});
 
       if (sessionId) {
@@ -178,12 +184,8 @@ function PlayPage() {
         nextQuestion(newLevel);
       }, 1500);
     },
-    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, sessionId, nextQuestion],
+    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, totalCorrect, totalWrong, sessionId, nextQuestion],
   );
-
-  async function currentTotal(_id: string, field: "total_correct" | "total_wrong"): Promise<number> {
-    return field === "total_correct" ? correctCount : wrongCount;
-  }
 
   useEffect(() => {
     if (!question || locked) return;
