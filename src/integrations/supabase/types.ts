@@ -14,7 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attempts: {
+        Row: {
+          correct: boolean
+          created_at: string
+          id: string
+          multiplier: number
+          question_type: string
+          student_id: string
+          table_num: number
+        }
+        Insert: {
+          correct: boolean
+          created_at?: string
+          id?: string
+          multiplier: number
+          question_type?: string
+          student_id: string
+          table_num: number
+        }
+        Update: {
+          correct?: boolean
+          created_at?: string
+          id?: string
+          multiplier?: number
+          question_type?: string
+          student_id?: string
+          table_num?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          correct_count: number
+          ended_at: string | null
+          id: string
+          level_at_end: number
+          level_at_start: number
+          started_at: string
+          student_id: string
+          wrong_count: number
+        }
+        Insert: {
+          correct_count?: number
+          ended_at?: string | null
+          id?: string
+          level_at_end?: number
+          level_at_start?: number
+          started_at?: string
+          student_id: string
+          wrong_count?: number
+        }
+        Update: {
+          correct_count?: number
+          ended_at?: string | null
+          id?: string
+          level_at_end?: number
+          level_at_start?: number
+          started_at?: string
+          student_id?: string
+          wrong_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          best_streak: number
+          created_at: string
+          current_level: number
+          current_streak: number
+          first_name: string
+          id: string
+          total_correct: number
+          total_wrong: number
+          updated_at: string
+        }
+        Insert: {
+          best_streak?: number
+          created_at?: string
+          current_level?: number
+          current_streak?: number
+          first_name: string
+          id?: string
+          total_correct?: number
+          total_wrong?: number
+          updated_at?: string
+        }
+        Update: {
+          best_streak?: number
+          created_at?: string
+          current_level?: number
+          current_streak?: number
+          first_name?: string
+          id?: string
+          total_correct?: number
+          total_wrong?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teacher_settings: {
+        Row: {
+          id: number
+          password: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          password?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          password?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
