@@ -1,0 +1,370 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  generateQuestion,
+  getLevel,
+  LEVELS,
+  TIMER_SECONDS,
+  type Question,
+} from "@/lib/quiz";
+import {
+  logAttempt,
+  startSession,
+  updateSession,
+  updateStudent,
+  findOrCreateStudent,
+} from "@/lib/api";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/jogar")({
+  head: () => ({
+    meta: [{ title: "Jogar — Tabuada Amazônica" }],
+  }),
+  component: PlayPage,
+});
+
+type Feedback = null | { correct: boolean; correctAnswer: string };
+
+function PlayPage() {
+  const navigate = useNavigate();
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [studentName, setStudentName] = useState<string>("");
+  const [level, setLevel] = useState<number>(1);
+  const [streak, setStreak] = useState<number>(0);
+  const [bestStreak, setBestStreak] = useState<number>(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
+
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+  const [locked, setLocked] = useState(false);
+  const [levelUpBanner, setLevelUpBanner] = useState<string | null>(null);
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const nextQuestion = useCallback(
+    (lvl: number) => {
+      const def = getLevel(lvl);
+      setQuestion(generateQuestion(def));
+      setTimeLeft(TIMER_SECONDS);
+      setFeedback(null);
+      setLocked(false);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("studentId");
+    const name = sessionStorage.getItem("studentName");
+    if (!id || !name) {
+      navigate({ to: "/aluno" });
+      return;
+    }
+    setStudentName(name);
+    (async () => {
+      const student = await findOrCreateStudent(name);
+      setStudentId(student.id);
+      setLevel(student.current_level);
+      setBestStreak(student.best_streak);
+      setStreak(student.current_streak);
+      const session = await startSession(student.id, student.current_level);
+      setSessionId(session.id as string);
+      nextQuestion(student.current_level);
+    })().catch((e) => {
+      console.error(e);
+      toast.error("Erro ao iniciar a sessão");
+    });
+    return () => stopTimer();
+  }, [navigate, nextQuestion]);
+
+  useEffect(() => {
+    return () => {
+      if (sessionId) {
+        updateSession(sessionId, {
+          correct_count: correctCount,
+          wrong_count: wrongCount,
+          level_at_end: level,
+          ended_at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+    };
+  }, [sessionId, correctCount, wrongCount, level]);
+
+  const handleAnswer = useCallback(
+    async (isCorrect: boolean) => {
+      if (!question || !studentId || locked) return;
+      setLocked(true);
+      stopTimer();
+
+      const correctLabel =
+        question.type === "choose_result"
+          ? String(question.answer)
+          : `${question.a} × ${question.b}`;
+      setFeedback({ correct: isCorrect, correctAnswer: correctLabel });
+
+      logAttempt({
+        studentId,
+        tableNum: question.tableNum,
+        multiplier: question.multiplier,
+        correct: isCorrect,
+        questionType: question.type,
+      }).catch(() => {});
+
+      let newStreak = streak;
+      let newLevel = level;
+      let newCorrect = correctCount;
+      let newWrong = wrongCount;
+      let newBest = bestStreak;
+
+      if (isCorrect) {
+        newStreak = streak + 1;
+        newCorrect = correctCount + 1;
+        if (newStreak > newBest) newBest = newStreak;
+        const def = getLevel(level);
+        if (newStreak >= def.streakRequired && level < LEVELS.length) {
+          newLevel = level + 1;
+          newStreak = 0;
+          const nextDef = getLevel(newLevel);
+          setLevelUpBanner(
+            nextDef.newTable
+              ? `🎉 Nível ${newLevel}! Agora vai entrar a tabuada do ${nextDef.newTable}.`
+              : `🎉 Você chegou ao nível ${newLevel}!`,
+          );
+          setTimeout(() => setLevelUpBanner(null), 3500);
+        }
+      } else {
+        newStreak = 0;
+        newWrong = wrongCount + 1;
+      }
+
+      setStreak(newStreak);
+      setLevel(newLevel);
+      setCorrectCount(newCorrect);
+      setWrongCount(newWrong);
+      setBestStreak(newBest);
+
+      updateStudent(studentId, {
+        current_level: newLevel,
+        current_streak: newStreak,
+        best_streak: newBest,
+        total_correct: (await currentTotal(studentId, "total_correct")) + (isCorrect ? 1 : 0),
+        total_wrong: (await currentTotal(studentId, "total_wrong")) + (isCorrect ? 0 : 1),
+      }).catch(() => {});
+
+      if (sessionId) {
+        updateSession(sessionId, {
+          correct_count: newCorrect,
+          wrong_count: newWrong,
+          level_at_end: newLevel,
+        }).catch(() => {});
+      }
+
+      setTimeout(() => {
+        nextQuestion(newLevel);
+      }, 1500);
+    },
+    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, sessionId, nextQuestion],
+  );
+
+  async function currentTotal(_id: string, field: "total_correct" | "total_wrong"): Promise<number> {
+    return field === "total_correct" ? correctCount : wrongCount;
+  }
+
+  useEffect(() => {
+    if (!question || locked) return;
+    stopTimer();
+    timerRef.current = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          stopTimer();
+          handleAnswer(false);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => stopTimer();
+  }, [question, locked, handleAnswer]);
+
+  if (!question || !studentId) {
+    return (
+      <main className="min-h-screen flex items-center justify-center leaf-bg">
+        <div className="text-muted-foreground">Carregando...</div>
+      </main>
+    );
+  }
+
+  const def = getLevel(level);
+  const progressPct = Math.min(100, Math.round((streak / def.streakRequired) * 100));
+
+  return (
+    <main className="min-h-screen leaf-bg px-4 py-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <button
+            onClick={() => navigate({ to: "/" })}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            ← Sair
+          </button>
+          <div className="text-sm font-semibold text-muted-foreground">
+            Olá, <span className="text-foreground">{studentName}</span>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl p-4 border border-border shadow-[var(--shadow-soft)] mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground font-bold">
+                {level}
+              </span>
+              <div>
+                <div className="text-sm font-bold text-foreground">Nível {level}</div>
+                <div className="text-xs text-muted-foreground">
+                  Tabuadas: {def.tables.join(", ")}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Sequência</div>
+              <div className="text-lg font-extrabold text-primary">
+                {streak}
+                <span className="text-muted-foreground text-sm font-medium">
+                  /{def.streakRequired}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center mb-6">
+          <div
+            className={cn(
+              "w-20 h-20 rounded-full border-4 flex items-center justify-center text-3xl font-extrabold transition-colors",
+              timeLeft <= 2
+                ? "border-destructive text-destructive animate-pulse"
+                : "border-river text-river",
+            )}
+          >
+            {timeLeft}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-3xl p-8 border border-border shadow-[var(--shadow-soft)]">
+          {question.type === "choose_result" ? (
+            <>
+              <p className="text-center text-sm text-muted-foreground font-semibold uppercase tracking-wider mb-3">
+                Quanto é?
+              </p>
+              <div className="text-center text-6xl font-extrabold text-foreground mb-8">
+                {question.a} × {question.b}
+              </div>
+              <div className="grid gap-3">
+                {question.options.map((opt) => (
+                  <Button
+                    key={opt}
+                    onClick={() => handleAnswer(opt === question.answer)}
+                    disabled={locked}
+                    className={cn(
+                      "btn-pop h-16 text-2xl font-bold rounded-2xl",
+                      locked && opt === question.answer && "bg-success hover:bg-success",
+                      locked &&
+                        feedback &&
+                        !feedback.correct &&
+                        opt !== question.answer &&
+                        "bg-muted text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {opt}
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-center text-sm text-muted-foreground font-semibold uppercase tracking-wider mb-3">
+                Qual conta dá esse resultado?
+              </p>
+              <div className="text-center text-6xl font-extrabold text-foreground mb-8">
+                {question.answer}
+              </div>
+              <div className="grid gap-3">
+                {question.options.map((opt, i) => (
+                  <Button
+                    key={i}
+                    onClick={() => handleAnswer(i === question.correctIndex)}
+                    disabled={locked}
+                    className={cn(
+                      "btn-pop h-16 text-2xl font-bold rounded-2xl",
+                      locked && i === question.correctIndex && "bg-success hover:bg-success",
+                      locked &&
+                        feedback &&
+                        !feedback.correct &&
+                        i !== question.correctIndex &&
+                        "bg-muted text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {feedback && (
+          <div
+            className={cn(
+              "mt-4 rounded-2xl p-4 text-center font-bold text-lg",
+              feedback.correct
+                ? "bg-success/15 text-success"
+                : "bg-destructive/15 text-destructive",
+            )}
+          >
+            {feedback.correct
+              ? "✅ Acertou!"
+              : `❌ Resposta certa: ${feedback.correctAnswer}`}
+          </div>
+        )}
+
+        {levelUpBanner && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground rounded-2xl px-6 py-3 font-bold shadow-[var(--shadow-pop-amber)] z-50">
+            {levelUpBanner}
+          </div>
+        )}
+
+        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+          <Stat label="Acertos" value={correctCount} color="text-success" />
+          <Stat label="Erros" value={wrongCount} color="text-destructive" />
+          <Stat label="Melhor" value={bestStreak} color="text-accent-foreground" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="bg-card rounded-xl p-3 border border-border">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn("text-xl font-extrabold", color)}>{value}</div>
+    </div>
+  );
+}
