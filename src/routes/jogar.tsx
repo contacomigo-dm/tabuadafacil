@@ -35,8 +35,10 @@ function PlayPage() {
   const [streak, setStreak] = useState<number>(0);
   const [bestStreak, setBestStreak] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [wrongCount, setWrongCount] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0); // session-scoped
+  const [wrongCount, setWrongCount] = useState(0); // session-scoped
+  const [totalCorrect, setTotalCorrect] = useState(0); // lifetime
+  const [totalWrong, setTotalWrong] = useState(0); // lifetime
 
   const [question, setQuestion] = useState<Question | null>(null);
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
