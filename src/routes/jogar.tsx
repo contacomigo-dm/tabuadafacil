@@ -80,6 +80,8 @@ function PlayPage() {
       setLevel(student.current_level);
       setBestStreak(student.best_streak);
       setStreak(student.current_streak);
+      setTotalCorrect(student.total_correct);
+      setTotalWrong(student.total_wrong);
       const session = await startSession(student.id, student.current_level);
       setSessionId(session.id as string);
       nextQuestion(student.current_level);
