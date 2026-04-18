@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfessorRouteImport } from './routes/professor'
 import { Route as JogarRouteImport } from './routes/jogar'
 import { Route as EscolherNivelRouteImport } from './routes/escolher-nivel'
+import { Route as DivisaoRouteImport } from './routes/divisao'
 import { Route as AlunoRouteImport } from './routes/aluno'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DivisaoTreinoRouteImport } from './routes/divisao.treino'
+import { Route as DivisaoJogarRouteImport } from './routes/divisao.jogar'
 
 const ProfessorRoute = ProfessorRouteImport.update({
   id: '/professor',
@@ -30,6 +33,11 @@ const EscolherNivelRoute = EscolherNivelRouteImport.update({
   path: '/escolher-nivel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DivisaoRoute = DivisaoRouteImport.update({
+  id: '/divisao',
+  path: '/divisao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlunoRoute = AlunoRouteImport.update({
   id: '/aluno',
   path: '/aluno',
@@ -40,40 +48,85 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DivisaoTreinoRoute = DivisaoTreinoRouteImport.update({
+  id: '/treino',
+  path: '/treino',
+  getParentRoute: () => DivisaoRoute,
+} as any)
+const DivisaoJogarRoute = DivisaoJogarRouteImport.update({
+  id: '/jogar',
+  path: '/jogar',
+  getParentRoute: () => DivisaoRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/divisao': typeof DivisaoRouteWithChildren
   '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
+  '/divisao/jogar': typeof DivisaoJogarRoute
+  '/divisao/treino': typeof DivisaoTreinoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/divisao': typeof DivisaoRouteWithChildren
   '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
+  '/divisao/jogar': typeof DivisaoJogarRoute
+  '/divisao/treino': typeof DivisaoTreinoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/divisao': typeof DivisaoRouteWithChildren
   '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
+  '/divisao/jogar': typeof DivisaoJogarRoute
+  '/divisao/treino': typeof DivisaoTreinoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/aluno' | '/escolher-nivel' | '/jogar' | '/professor'
+  fullPaths:
+    | '/'
+    | '/aluno'
+    | '/divisao'
+    | '/escolher-nivel'
+    | '/jogar'
+    | '/professor'
+    | '/divisao/jogar'
+    | '/divisao/treino'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/aluno' | '/escolher-nivel' | '/jogar' | '/professor'
-  id: '__root__' | '/' | '/aluno' | '/escolher-nivel' | '/jogar' | '/professor'
+  to:
+    | '/'
+    | '/aluno'
+    | '/divisao'
+    | '/escolher-nivel'
+    | '/jogar'
+    | '/professor'
+    | '/divisao/jogar'
+    | '/divisao/treino'
+  id:
+    | '__root__'
+    | '/'
+    | '/aluno'
+    | '/divisao'
+    | '/escolher-nivel'
+    | '/jogar'
+    | '/professor'
+    | '/divisao/jogar'
+    | '/divisao/treino'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlunoRoute: typeof AlunoRoute
+  DivisaoRoute: typeof DivisaoRouteWithChildren
   EscolherNivelRoute: typeof EscolherNivelRoute
   JogarRoute: typeof JogarRoute
   ProfessorRoute: typeof ProfessorRoute
@@ -102,6 +155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EscolherNivelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/divisao': {
+      id: '/divisao'
+      path: '/divisao'
+      fullPath: '/divisao'
+      preLoaderRoute: typeof DivisaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aluno': {
       id: '/aluno'
       path: '/aluno'
@@ -116,12 +176,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/divisao/treino': {
+      id: '/divisao/treino'
+      path: '/treino'
+      fullPath: '/divisao/treino'
+      preLoaderRoute: typeof DivisaoTreinoRouteImport
+      parentRoute: typeof DivisaoRoute
+    }
+    '/divisao/jogar': {
+      id: '/divisao/jogar'
+      path: '/jogar'
+      fullPath: '/divisao/jogar'
+      preLoaderRoute: typeof DivisaoJogarRouteImport
+      parentRoute: typeof DivisaoRoute
+    }
   }
 }
+
+interface DivisaoRouteChildren {
+  DivisaoJogarRoute: typeof DivisaoJogarRoute
+  DivisaoTreinoRoute: typeof DivisaoTreinoRoute
+}
+
+const DivisaoRouteChildren: DivisaoRouteChildren = {
+  DivisaoJogarRoute: DivisaoJogarRoute,
+  DivisaoTreinoRoute: DivisaoTreinoRoute,
+}
+
+const DivisaoRouteWithChildren =
+  DivisaoRoute._addFileChildren(DivisaoRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlunoRoute: AlunoRoute,
+  DivisaoRoute: DivisaoRouteWithChildren,
   EscolherNivelRoute: EscolherNivelRoute,
   JogarRoute: JogarRoute,
   ProfessorRoute: ProfessorRoute,
@@ -129,3 +217,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
