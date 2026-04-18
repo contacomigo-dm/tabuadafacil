@@ -36,7 +36,13 @@ function AlunoEntry() {
       const student = await findOrCreateStudent(trimmed);
       sessionStorage.setItem("studentId", student.id);
       sessionStorage.setItem("studentName", student.first_name);
-      navigate({ to: "/jogar" });
+      sessionStorage.removeItem("chosenLevel");
+      if (student.current_level > 1) {
+        navigate({ to: "/escolher-nivel" });
+      } else {
+        sessionStorage.setItem("chosenLevel", "1");
+        navigate({ to: "/jogar" });
+      }
     } catch (err) {
       console.error(err);
       toast.error("Não foi possível entrar. Tente novamente.");

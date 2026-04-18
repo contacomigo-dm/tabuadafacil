@@ -45,6 +45,8 @@ function PlayPage() {
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [locked, setLocked] = useState(false);
   const [levelUpBanner, setLevelUpBanner] = useState<string | null>(null);
+  const [levelCompleteChoice, setLevelCompleteChoice] = useState<{ newLevel: number } | null>(null);
+  const [maxLevelReached, setMaxLevelReached] = useState(1);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -77,14 +79,21 @@ function PlayPage() {
     (async () => {
       const student = await findOrCreateStudent(name);
       setStudentId(student.id);
-      setLevel(student.current_level);
+      setMaxLevelReached(student.current_level);
+      const chosenRaw = sessionStorage.getItem("chosenLevel");
+      const chosen = chosenRaw ? parseInt(chosenRaw, 10) : student.current_level;
+      const startLevel = Math.min(
+        Math.max(1, isNaN(chosen) ? student.current_level : chosen),
+        student.current_level,
+      );
+      setLevel(startLevel);
       setBestStreak(student.best_streak);
-      setStreak(student.current_streak);
+      setStreak(0);
       setTotalCorrect(student.total_correct);
       setTotalWrong(student.total_wrong);
-      const session = await startSession(student.id, student.current_level);
+      const session = await startSession(student.id, startLevel);
       setSessionId(session.id as string);
-      nextQuestion(student.current_level);
+      nextQuestion(startLevel);
     })().catch((e) => {
       console.error(e);
       toast.error("Erro ao iniciar a sessão");
@@ -133,6 +142,7 @@ function PlayPage() {
       let newTotalCorrect = totalCorrect;
       let newTotalWrong = totalWrong;
 
+      let levelJustCompleted = false;
       if (isCorrect) {
         newStreak = streak + 1;
         newCorrect = correctCount + 1;
@@ -142,13 +152,7 @@ function PlayPage() {
         if (newStreak >= def.streakRequired && level < LEVELS.length) {
           newLevel = level + 1;
           newStreak = 0;
-          const nextDef = getLevel(newLevel);
-          setLevelUpBanner(
-            nextDef.newTable
-              ? `🎉 Nível ${newLevel}! Agora vai entrar a tabuada do ${nextDef.newTable}.`
-              : `🎉 Você chegou ao nível ${newLevel}!`,
-          );
-          setTimeout(() => setLevelUpBanner(null), 3500);
+          levelJustCompleted = true;
         }
       } else {
         newStreak = 0;
@@ -157,15 +161,18 @@ function PlayPage() {
       }
 
       setStreak(newStreak);
-      setLevel(newLevel);
       setCorrectCount(newCorrect);
       setWrongCount(newWrong);
       setBestStreak(newBest);
       setTotalCorrect(newTotalCorrect);
       setTotalWrong(newTotalWrong);
 
+      // current_level salvo = maior nível já alcançado (não regride ao revisar)
+      const newMaxLevel = Math.max(maxLevelReached, newLevel);
+      if (newMaxLevel > maxLevelReached) setMaxLevelReached(newMaxLevel);
+
       updateStudent(studentId, {
-        current_level: newLevel,
+        current_level: newMaxLevel,
         current_streak: newStreak,
         best_streak: newBest,
         total_correct: newTotalCorrect,
@@ -176,19 +183,25 @@ function PlayPage() {
         updateSession(sessionId, {
           correct_count: newCorrect,
           wrong_count: newWrong,
-          level_at_end: newLevel,
+          level_at_end: newMaxLevel,
         }).catch(() => {});
+      }
+
+      if (levelJustCompleted) {
+        setLevel(newLevel);
+        setLevelCompleteChoice({ newLevel });
+        return;
       }
 
       setTimeout(() => {
         nextQuestion(newLevel);
       }, 1500);
     },
-    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, totalCorrect, totalWrong, sessionId, nextQuestion],
+    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, totalCorrect, totalWrong, maxLevelReached, sessionId, nextQuestion],
   );
 
   useEffect(() => {
-    if (!question || locked) return;
+    if (!question || locked || levelCompleteChoice) return;
     stopTimer();
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
@@ -201,7 +214,29 @@ function PlayPage() {
       });
     }, 1000);
     return () => stopTimer();
-  }, [question, locked, handleAnswer]);
+  }, [question, locked, levelCompleteChoice, handleAnswer]);
+
+  const handleStop = () => {
+    stopTimer();
+    if (sessionId) {
+      updateSession(sessionId, {
+        correct_count: correctCount,
+        wrong_count: wrongCount,
+        level_at_end: maxLevelReached,
+        ended_at: new Date().toISOString(),
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem("chosenLevel");
+    navigate({ to: "/" });
+  };
+
+  const handleContinueAfterLevel = () => {
+    if (!levelCompleteChoice) return;
+    const lvl = levelCompleteChoice.newLevel;
+    setLevelCompleteChoice(null);
+    setLocked(false);
+    nextQuestion(lvl);
+  };
 
   if (!question || !studentId) {
     return (
@@ -219,10 +254,10 @@ function PlayPage() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between gap-3 mb-4">
           <button
-            onClick={() => navigate({ to: "/" })}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            onClick={handleStop}
+            className="text-sm font-semibold text-muted-foreground hover:text-foreground"
           >
-            ← Sair
+            ⏸ Parar e salvar
           </button>
           <div className="text-sm font-semibold text-muted-foreground">
             Olá, <span className="text-foreground">{studentName}</span>
@@ -353,6 +388,40 @@ function PlayPage() {
         {levelUpBanner && (
           <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground rounded-2xl px-6 py-3 font-bold shadow-[var(--shadow-pop-amber)] z-50">
             {levelUpBanner}
+          </div>
+        )}
+
+        {levelCompleteChoice && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="bg-card rounded-3xl p-8 max-w-md w-full border border-border shadow-[var(--shadow-soft)] text-center">
+              <div className="text-5xl mb-3">🎉</div>
+              <h2 className="text-2xl font-extrabold text-foreground mb-2">
+                Parabéns! Você passou de nível!
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Agora você está no <span className="font-bold text-primary">Nível {levelCompleteChoice.newLevel}</span>
+                {getLevel(levelCompleteChoice.newLevel).newTable
+                  ? `. Vai entrar a tabuada do ${getLevel(levelCompleteChoice.newLevel).newTable}.`
+                  : "."}
+                <br />
+                Seu progresso já está salvo. Quer continuar ou parar por aqui?
+              </p>
+              <div className="grid gap-3">
+                <Button
+                  onClick={handleContinueAfterLevel}
+                  className="btn-pop h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+                >
+                  ▶ Continuar jogando
+                </Button>
+                <Button
+                  onClick={handleStop}
+                  variant="outline"
+                  className="h-14 text-lg font-bold rounded-2xl"
+                >
+                  ⏸ Parar e sair
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
