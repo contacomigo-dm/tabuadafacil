@@ -45,6 +45,8 @@ function PlayPage() {
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [locked, setLocked] = useState(false);
   const [levelUpBanner, setLevelUpBanner] = useState<string | null>(null);
+  const [levelCompleteChoice, setLevelCompleteChoice] = useState<{ newLevel: number } | null>(null);
+  const [maxLevelReached, setMaxLevelReached] = useState(1);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
