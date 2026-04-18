@@ -142,6 +142,7 @@ function PlayPage() {
       let newTotalCorrect = totalCorrect;
       let newTotalWrong = totalWrong;
 
+      let levelJustCompleted = false;
       if (isCorrect) {
         newStreak = streak + 1;
         newCorrect = correctCount + 1;
@@ -151,13 +152,7 @@ function PlayPage() {
         if (newStreak >= def.streakRequired && level < LEVELS.length) {
           newLevel = level + 1;
           newStreak = 0;
-          const nextDef = getLevel(newLevel);
-          setLevelUpBanner(
-            nextDef.newTable
-              ? `🎉 Nível ${newLevel}! Agora vai entrar a tabuada do ${nextDef.newTable}.`
-              : `🎉 Você chegou ao nível ${newLevel}!`,
-          );
-          setTimeout(() => setLevelUpBanner(null), 3500);
+          levelJustCompleted = true;
         }
       } else {
         newStreak = 0;
@@ -166,15 +161,18 @@ function PlayPage() {
       }
 
       setStreak(newStreak);
-      setLevel(newLevel);
       setCorrectCount(newCorrect);
       setWrongCount(newWrong);
       setBestStreak(newBest);
       setTotalCorrect(newTotalCorrect);
       setTotalWrong(newTotalWrong);
 
+      // current_level salvo = maior nível já alcançado (não regride ao revisar)
+      const newMaxLevel = Math.max(maxLevelReached, newLevel);
+      if (newMaxLevel > maxLevelReached) setMaxLevelReached(newMaxLevel);
+
       updateStudent(studentId, {
-        current_level: newLevel,
+        current_level: newMaxLevel,
         current_streak: newStreak,
         best_streak: newBest,
         total_correct: newTotalCorrect,
@@ -185,15 +183,21 @@ function PlayPage() {
         updateSession(sessionId, {
           correct_count: newCorrect,
           wrong_count: newWrong,
-          level_at_end: newLevel,
+          level_at_end: newMaxLevel,
         }).catch(() => {});
+      }
+
+      if (levelJustCompleted) {
+        setLevel(newLevel);
+        setLevelCompleteChoice({ newLevel });
+        return;
       }
 
       setTimeout(() => {
         nextQuestion(newLevel);
       }, 1500);
     },
-    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, totalCorrect, totalWrong, sessionId, nextQuestion],
+    [question, studentId, locked, streak, level, correctCount, wrongCount, bestStreak, totalCorrect, totalWrong, maxLevelReached, sessionId, nextQuestion],
   );
 
   useEffect(() => {
