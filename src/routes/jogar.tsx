@@ -79,14 +79,21 @@ function PlayPage() {
     (async () => {
       const student = await findOrCreateStudent(name);
       setStudentId(student.id);
-      setLevel(student.current_level);
+      setMaxLevelReached(student.current_level);
+      const chosenRaw = sessionStorage.getItem("chosenLevel");
+      const chosen = chosenRaw ? parseInt(chosenRaw, 10) : student.current_level;
+      const startLevel = Math.min(
+        Math.max(1, isNaN(chosen) ? student.current_level : chosen),
+        student.current_level,
+      );
+      setLevel(startLevel);
       setBestStreak(student.best_streak);
-      setStreak(student.current_streak);
+      setStreak(0);
       setTotalCorrect(student.total_correct);
       setTotalWrong(student.total_wrong);
-      const session = await startSession(student.id, student.current_level);
+      const session = await startSession(student.id, startLevel);
       setSessionId(session.id as string);
-      nextQuestion(student.current_level);
+      nextQuestion(startLevel);
     })().catch((e) => {
       console.error(e);
       toast.error("Erro ao iniciar a sessão");
