@@ -46,7 +46,7 @@ export const LEVELS: LevelDef[] = [
   { level: 6, tables: [2, 3, 4, 5, 6, 7, 8, 9], streakRequired: 37, newTable: 9 },
 ];
 
-export const TIMER_SECONDS = 5;
+export const TIMER_SECONDS = 7;
 
 function rand(n: number) {
   return Math.floor(Math.random() * n);
