@@ -201,7 +201,7 @@ function PlayPage() {
   );
 
   useEffect(() => {
-    if (!question || locked) return;
+    if (!question || locked || levelCompleteChoice) return;
     stopTimer();
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
@@ -214,7 +214,29 @@ function PlayPage() {
       });
     }, 1000);
     return () => stopTimer();
-  }, [question, locked, handleAnswer]);
+  }, [question, locked, levelCompleteChoice, handleAnswer]);
+
+  const handleStop = () => {
+    stopTimer();
+    if (sessionId) {
+      updateSession(sessionId, {
+        correct_count: correctCount,
+        wrong_count: wrongCount,
+        level_at_end: maxLevelReached,
+        ended_at: new Date().toISOString(),
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem("chosenLevel");
+    navigate({ to: "/" });
+  };
+
+  const handleContinueAfterLevel = () => {
+    if (!levelCompleteChoice) return;
+    const lvl = levelCompleteChoice.newLevel;
+    setLevelCompleteChoice(null);
+    setLocked(false);
+    nextQuestion(lvl);
+  };
 
   if (!question || !studentId) {
     return (
