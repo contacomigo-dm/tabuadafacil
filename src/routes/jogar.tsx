@@ -391,6 +391,40 @@ function PlayPage() {
           </div>
         )}
 
+        {levelCompleteChoice && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="bg-card rounded-3xl p-8 max-w-md w-full border border-border shadow-[var(--shadow-soft)] text-center">
+              <div className="text-5xl mb-3">🎉</div>
+              <h2 className="text-2xl font-extrabold text-foreground mb-2">
+                Parabéns! Você passou de nível!
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Agora você está no <span className="font-bold text-primary">Nível {levelCompleteChoice.newLevel}</span>
+                {getLevel(levelCompleteChoice.newLevel).newTable
+                  ? `. Vai entrar a tabuada do ${getLevel(levelCompleteChoice.newLevel).newTable}.`
+                  : "."}
+                <br />
+                Seu progresso já está salvo. Quer continuar ou parar por aqui?
+              </p>
+              <div className="grid gap-3">
+                <Button
+                  onClick={handleContinueAfterLevel}
+                  className="btn-pop h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+                >
+                  ▶ Continuar jogando
+                </Button>
+                <Button
+                  onClick={handleStop}
+                  variant="outline"
+                  className="h-14 text-lg font-bold rounded-2xl"
+                >
+                  ⏸ Parar e sair
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 grid grid-cols-3 gap-3 text-center">
           <Stat label="Acertos" value={correctCount} color="text-success" />
           <Stat label="Erros" value={wrongCount} color="text-destructive" />
