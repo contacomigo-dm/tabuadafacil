@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfessorRouteImport } from './routes/professor'
 import { Route as JogarRouteImport } from './routes/jogar'
+import { Route as EscolherNivelRouteImport } from './routes/escolher-nivel'
 import { Route as AlunoRouteImport } from './routes/aluno'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const ProfessorRoute = ProfessorRouteImport.update({
 const JogarRoute = JogarRouteImport.update({
   id: '/jogar',
   path: '/jogar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscolherNivelRoute = EscolherNivelRouteImport.update({
+  id: '/escolher-nivel',
+  path: '/escolher-nivel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunoRoute = AlunoRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/aluno' | '/jogar' | '/professor'
+  fullPaths: '/' | '/aluno' | '/escolher-nivel' | '/jogar' | '/professor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/aluno' | '/jogar' | '/professor'
-  id: '__root__' | '/' | '/aluno' | '/jogar' | '/professor'
+  to: '/' | '/aluno' | '/escolher-nivel' | '/jogar' | '/professor'
+  id: '__root__' | '/' | '/aluno' | '/escolher-nivel' | '/jogar' | '/professor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlunoRoute: typeof AlunoRoute
+  EscolherNivelRoute: typeof EscolherNivelRoute
   JogarRoute: typeof JogarRoute
   ProfessorRoute: typeof ProfessorRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/jogar'
       fullPath: '/jogar'
       preLoaderRoute: typeof JogarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escolher-nivel': {
+      id: '/escolher-nivel'
+      path: '/escolher-nivel'
+      fullPath: '/escolher-nivel'
+      preLoaderRoute: typeof EscolherNivelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aluno': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlunoRoute: AlunoRoute,
+  EscolherNivelRoute: EscolherNivelRoute,
   JogarRoute: JogarRoute,
   ProfessorRoute: ProfessorRoute,
 }
