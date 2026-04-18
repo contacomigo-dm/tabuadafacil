@@ -254,10 +254,10 @@ function PlayPage() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between gap-3 mb-4">
           <button
-            onClick={() => navigate({ to: "/" })}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            onClick={handleStop}
+            className="text-sm font-semibold text-muted-foreground hover:text-foreground"
           >
-            ← Sair
+            ⏸ Parar e salvar
           </button>
           <div className="text-sm font-semibold text-muted-foreground">
             Olá, <span className="text-foreground">{studentName}</span>
