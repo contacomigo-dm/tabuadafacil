@@ -30,7 +30,7 @@ function TreinoLivre() {
     sessionStorage.setItem("divFreeMode", "1");
     sessionStorage.setItem("divFreeDividend", String(d));
     sessionStorage.setItem("divFreeDivisor", String(s));
-    navigate({ to: "/divisao/jogar" });
+    navigate({ to: "/divisao-jogar" });
   };
 
   return (
