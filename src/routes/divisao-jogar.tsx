@@ -14,7 +14,7 @@ import {
   type DivisionPlan,
 } from "@/lib/divisao";
 
-export const Route = createFileRoute("/divisao/jogar")({
+export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
     meta: [{ title: "Jogar — Divisão Longa" }],
   }),
