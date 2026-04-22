@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/divisao/treino")({
+export const Route = createFileRoute("/divisao-treino")({
   head: () => ({
     meta: [{ title: "Treino livre — Divisão Longa" }],
   }),
@@ -30,7 +30,7 @@ function TreinoLivre() {
     sessionStorage.setItem("divFreeMode", "1");
     sessionStorage.setItem("divFreeDividend", String(d));
     sessionStorage.setItem("divFreeDivisor", String(s));
-    navigate({ to: "/divisao/jogar" });
+    navigate({ to: "/divisao-jogar" });
   };
 
   return (

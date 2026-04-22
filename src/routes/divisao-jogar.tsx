@@ -14,7 +14,7 @@ import {
   type DivisionPlan,
 } from "@/lib/divisao";
 
-export const Route = createFileRoute("/divisao/jogar")({
+export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
     meta: [{ title: "Jogar — Divisão Longa" }],
   }),
@@ -84,7 +84,7 @@ function PlayDivisao() {
   function newProblem() {
     if (setup.mode === "free") {
       // free mode: just go back to setup screen
-      navigate({ to: "/divisao/treino" });
+      navigate({ to: "/divisao-treino" });
       return;
     }
     const def = (setup as Extract<typeof setup, { mode: "level" }>).def;
@@ -442,7 +442,7 @@ function PlayDivisao() {
                   setProblemsDone(0);
                   if (setup.mode === "level" && setup.level < 4) {
                     sessionStorage.setItem("divLevel", String(setup.level + 1));
-                    navigate({ to: "/divisao/jogar" });
+                    navigate({ to: "/divisao-jogar" });
                     // Force a fresh setup by navigating to menu first would be cleaner; reload instead:
                     setTimeout(() => window.location.reload(), 50);
                   } else {

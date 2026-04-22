@@ -27,7 +27,7 @@ function DivisaoMenu() {
   const startLevel = (lvl: number) => {
     sessionStorage.setItem("divLevel", String(lvl));
     sessionStorage.removeItem("divFreeMode");
-    navigate({ to: "/divisao/jogar" });
+    navigate({ to: "/divisao-jogar" });
   };
 
   return (
@@ -85,7 +85,7 @@ function DivisaoMenu() {
               sem contar para o progresso.
             </p>
             <Button
-              onClick={() => navigate({ to: "/divisao/treino" })}
+              onClick={() => navigate({ to: "/divisao-treino" })}
               className="btn-pop-amber w-full h-14 text-lg font-bold rounded-2xl bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               ✏️ Abrir treino livre
