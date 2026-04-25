@@ -580,9 +580,25 @@ function DivisionBoard({
         </div>
 
         {/* History rows: each step's product + remainder underneath */}
-        {history.map((rec, idx) => (
-          <StepRows key={`h-${idx}`} rec={rec} cols={cols} colW={colW} />
-        ))}
+        {history.map((rec, idx) => {
+          // Find the next step (if any) to know which digit to "bring down"
+          const nextStep = plan.steps[idx + 1];
+          const broughtDownDigitIndex = nextStep ? nextStep.digitIndex : -1;
+          const broughtDownDigit =
+            broughtDownDigitIndex >= 0
+              ? plan.dividendDigits[broughtDownDigitIndex]
+              : null;
+          return (
+            <StepRows
+              key={`h-${idx}`}
+              rec={rec}
+              cols={cols}
+              colW={colW}
+              broughtDownDigit={broughtDownDigit}
+              broughtDownDigitIndex={broughtDownDigitIndex}
+            />
+          );
+        })}
 
         {/* Current in-progress product (during verifyMul / subtract) */}
         {phase !== "done" &&
