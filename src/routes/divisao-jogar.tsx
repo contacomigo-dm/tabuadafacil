@@ -580,9 +580,25 @@ function DivisionBoard({
         </div>
 
         {/* History rows: each step's product + remainder underneath */}
-        {history.map((rec, idx) => (
-          <StepRows key={`h-${idx}`} rec={rec} cols={cols} colW={colW} />
-        ))}
+        {history.map((rec, idx) => {
+          // Find the next step (if any) to know which digit to "bring down"
+          const nextStep = plan.steps[idx + 1];
+          const broughtDownDigitIndex = nextStep ? nextStep.digitIndex : -1;
+          const broughtDownDigit =
+            broughtDownDigitIndex >= 0
+              ? plan.dividendDigits[broughtDownDigitIndex]
+              : null;
+          return (
+            <StepRows
+              key={`h-${idx}`}
+              rec={rec}
+              cols={cols}
+              colW={colW}
+              broughtDownDigit={broughtDownDigit}
+              broughtDownDigitIndex={broughtDownDigitIndex}
+            />
+          );
+        })}
 
         {/* Current in-progress product (during verifyMul / subtract) */}
         {phase !== "done" &&
@@ -602,13 +618,30 @@ function DivisionBoard({
   );
 }
 
-function StepRows({ rec, cols, colW }: { rec: StepRecord; cols: number; colW: number }) {
+function StepRows({
+  rec,
+  cols,
+  colW,
+  broughtDownDigit,
+  broughtDownDigitIndex,
+}: {
+  rec: StepRecord;
+  cols: number;
+  colW: number;
+  broughtDownDigit?: number | null;
+  broughtDownDigitIndex?: number;
+}) {
   const productStr = String(rec.product).padStart(String(rec.chunkBefore).length, "0");
   const remainderStr = String(rec.remainder);
   // Right-align both to rec.digitIndex
   const endCol = rec.digitIndex; // 0-based
   const productStart = endCol - productStr.length + 1;
   const remStart = endCol - remainderStr.length + 1;
+  const hasBringDown =
+    broughtDownDigit !== null &&
+    broughtDownDigit !== undefined &&
+    broughtDownDigitIndex !== undefined &&
+    broughtDownDigitIndex >= 0;
 
   return (
     <>
@@ -663,7 +696,27 @@ function StepRows({ rec, cols, colW }: { rec: StepRecord; cols: number; colW: nu
         <div />
       </div>
 
-      {/* Remainder row */}
+      {/* Bring-down arrow row (if there's a next step) */}
+      {hasBringDown && (
+        <div
+          className="grid items-center"
+          style={{ gridTemplateColumns: `repeat(${cols}, ${colW}px) auto ${colW * 2}px` }}
+        >
+          {Array.from({ length: cols }).map((_, i) => (
+            <div
+              key={`arrow-${i}`}
+              className="text-center text-river"
+              style={{ width: `${colW}px` }}
+            >
+              {i === broughtDownDigitIndex ? "↓" : ""}
+            </div>
+          ))}
+          <div />
+          <div />
+        </div>
+      )}
+
+      {/* Remainder row + brought-down digit beside it */}
       <div
         className="grid items-center"
         style={{ gridTemplateColumns: `repeat(${cols}, ${colW}px) auto ${colW * 2}px` }}
@@ -678,6 +731,20 @@ function StepRows({ rec, cols, colW }: { rec: StepRecord; cols: number; colW: nu
                 style={{ width: `${colW}px` }}
               >
                 {ch}
+              </div>
+            );
+          }
+          if (
+            hasBringDown &&
+            i === broughtDownDigitIndex
+          ) {
+            return (
+              <div
+                key={`r-${i}`}
+                className="text-2xl sm:text-3xl font-bold text-river text-center bg-river/15 rounded-md"
+                style={{ width: `${colW}px` }}
+              >
+                {broughtDownDigit}
               </div>
             );
           }
