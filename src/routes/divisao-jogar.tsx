@@ -115,7 +115,22 @@ function PlayDivisao() {
       toast.error("Digite 1 algarismo (0 a 9)");
       return;
     }
+    // Reject wrong quotient immediately — student must try again
+    if (v !== currentStep.correctQuotient) {
+      const newAttempts = quotientAttempts + 1;
+      setQuotientAttempts(newAttempts);
+      const product = v * plan.divisor;
+      if (product > currentStep.chunk) {
+        toast.error(`${v} × ${plan.divisor} = ${product}, e ${product} é maior que ${currentStep.chunk}. Tente um número menor.`);
+      } else {
+        toast.error(`Não é ${v}. ${v} × ${plan.divisor} = ${product}, sobraria ${currentStep.chunk - product} (≥ ${plan.divisor}). Tente um número maior.`);
+      }
+      setHint(quotientHint(currentStep.chunk, plan.divisor, newAttempts));
+      setQuotientInput("");
+      return;
+    }
     setConfirmedQuotient(v);
+    setHint(null);
     setPhase("verifyMul");
   }
 
@@ -130,10 +145,6 @@ function PlayDivisao() {
     setConfirmedQuotient(null);
     setQuotientInput("");
     setPhase("quotient");
-    // We DO count this as an attempt (they realized it was wrong via multiplication)
-    const newAttempts = quotientAttempts + 1;
-    setQuotientAttempts(newAttempts);
-    setHint(quotientHint(currentStep.chunk, plan.divisor, newAttempts));
   }
 
   function checkRemainder() {
