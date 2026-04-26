@@ -172,11 +172,11 @@ function TeacherPage() {
             ) : (
               <ul className="space-y-1">
                 {students.map((s) => (
-                  <li key={s.id}>
+                  <li key={s.id} className="group relative">
                     <button
                       onClick={() => setSelected(s)}
                       className={cn(
-                        "w-full text-left rounded-xl p-3 transition-colors",
+                        "w-full text-left rounded-xl p-3 pr-12 transition-colors",
                         selected?.id === s.id
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-secondary",
@@ -189,8 +189,32 @@ function TeacherPage() {
                           selected?.id === s.id ? "text-primary-foreground/80" : "text-muted-foreground",
                         )}
                       >
-                        Nível {s.current_level} · melhor seq. {s.best_streak}
+                        {[s.grade, s.class_name, s.shift].filter(Boolean).join(" · ") || `Nível ${s.current_level}`}
                       </div>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Excluir ${s.first_name}`}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`Excluir o aluno "${s.first_name}" e todo o seu histórico? Esta ação não pode ser desfeita.`)) return;
+                        try {
+                          await deleteStudent(s.id);
+                          setStudents((prev) => prev.filter((x) => x.id !== s.id));
+                          if (selected?.id === s.id) setSelected(null);
+                          toast.success("Aluno excluído");
+                        } catch {
+                          toast.error("Erro ao excluir aluno");
+                        }
+                      }}
+                      className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition",
+                        selected?.id === s.id
+                          ? "text-primary-foreground/80 hover:bg-primary-foreground/20"
+                          : "text-muted-foreground hover:bg-destructive hover:text-destructive-foreground",
+                      )}
+                    >
+                      🗑️
                     </button>
                   </li>
                 ))}
