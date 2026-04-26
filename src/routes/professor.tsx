@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, type Student } from "@/lib/api";
+import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, type Student } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -172,11 +172,11 @@ function TeacherPage() {
             ) : (
               <ul className="space-y-1">
                 {students.map((s) => (
-                  <li key={s.id}>
+                  <li key={s.id} className="group relative">
                     <button
                       onClick={() => setSelected(s)}
                       className={cn(
-                        "w-full text-left rounded-xl p-3 transition-colors",
+                        "w-full text-left rounded-xl p-3 pr-12 transition-colors",
                         selected?.id === s.id
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-secondary",
@@ -189,8 +189,32 @@ function TeacherPage() {
                           selected?.id === s.id ? "text-primary-foreground/80" : "text-muted-foreground",
                         )}
                       >
-                        Nível {s.current_level} · melhor seq. {s.best_streak}
+                        {[s.grade, s.class_name, s.shift].filter(Boolean).join(" · ") || `Nível ${s.current_level}`}
                       </div>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Excluir ${s.first_name}`}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`Excluir o aluno "${s.first_name}" e todo o seu histórico? Esta ação não pode ser desfeita.`)) return;
+                        try {
+                          await deleteStudent(s.id);
+                          setStudents((prev) => prev.filter((x) => x.id !== s.id));
+                          if (selected?.id === s.id) setSelected(null);
+                          toast.success("Aluno excluído");
+                        } catch {
+                          toast.error("Erro ao excluir aluno");
+                        }
+                      }}
+                      className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition",
+                        selected?.id === s.id
+                          ? "text-primary-foreground/80 hover:bg-primary-foreground/20"
+                          : "text-muted-foreground hover:bg-destructive hover:text-destructive-foreground",
+                      )}
+                    >
+                      🗑️
                     </button>
                   </li>
                 ))}
@@ -227,7 +251,13 @@ function StudentDetail({
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-2xl p-6 border border-border">
-        <h2 className="text-2xl font-extrabold mb-4">{student.first_name}</h2>
+        <h2 className="text-2xl font-extrabold">{student.first_name}</h2>
+        {(student.grade || student.class_name || student.shift) && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {[student.grade && `Série ${student.grade}`, student.class_name && `Turma ${student.class_name}`, student.shift].filter(Boolean).join(" · ")}
+          </p>
+        )}
+        {!student.grade && !student.class_name && !student.shift && <div className="mb-4" />}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card label="Nível" value={student.current_level} />
           <Card label="Maior sequência" value={student.best_streak} />

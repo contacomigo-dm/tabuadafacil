@@ -96,33 +96,42 @@ export type Database = {
       students: {
         Row: {
           best_streak: number
+          class_name: string | null
           created_at: string
           current_level: number
           current_streak: number
           first_name: string
+          grade: string | null
           id: string
+          shift: string | null
           total_correct: number
           total_wrong: number
           updated_at: string
         }
         Insert: {
           best_streak?: number
+          class_name?: string | null
           created_at?: string
           current_level?: number
           current_streak?: number
           first_name: string
+          grade?: string | null
           id?: string
+          shift?: string | null
           total_correct?: number
           total_wrong?: number
           updated_at?: string
         }
         Update: {
           best_streak?: number
+          class_name?: string | null
           created_at?: string
           current_level?: number
           current_streak?: number
           first_name?: string
+          grade?: string | null
           id?: string
+          shift?: string | null
           total_correct?: number
           total_wrong?: number
           updated_at?: string
