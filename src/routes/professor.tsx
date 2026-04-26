@@ -251,7 +251,13 @@ function StudentDetail({
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-2xl p-6 border border-border">
-        <h2 className="text-2xl font-extrabold mb-4">{student.first_name}</h2>
+        <h2 className="text-2xl font-extrabold">{student.first_name}</h2>
+        {(student.grade || student.class_name || student.shift) && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {[student.grade && `Série ${student.grade}`, student.class_name && `Turma ${student.class_name}`, student.shift].filter(Boolean).join(" · ")}
+          </p>
+        )}
+        {!student.grade && !student.class_name && !student.shift && <div className="mb-4" />}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card label="Nível" value={student.current_level} />
           <Card label="Maior sequência" value={student.best_streak} />
