@@ -531,28 +531,7 @@ function DivisionBoard({
   return (
     <div className="overflow-x-auto">
       <div className="font-mono inline-block min-w-full">
-        {/* Quotient row at top right (above the dividend, separated by horizontal bar on right) */}
-        <div className="flex items-end justify-center mb-2">
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: `repeat(${cols}, ${colW}px) auto ${colW * 2}px` }}
-          >
-            {/* dividend columns spacer (top row empty above dividend) */}
-            {plan.dividendDigits.map((_, i) => (
-              <div key={`q-spacer-${i}`} />
-            ))}
-            <div />
-            {/* Quotient block (right side, under the divisor, separated by a horizontal line) */}
-            <div className="flex flex-col items-center">
-              <div className="h-10 flex items-end text-3xl sm:text-4xl font-bold text-river">
-                {quotientDisplay || "?"}
-              </div>
-              <div className="w-full h-0.5 bg-foreground" />
-            </div>
-          </div>
-        </div>
-
-        {/* Dividend row + divisor */}
+        {/* Dividend row + divisor (Brazilian "casinha" layout: divisor on top-right, quotient below it) */}
         <div
           className="grid items-center"
           style={{ gridTemplateColumns: `repeat(${cols}, ${colW}px) auto ${colW * 2}px` }}
@@ -573,9 +552,15 @@ function DivisionBoard({
           ))}
           {/* Vertical divider "|" of the casinha */}
           <div className="px-2 text-3xl sm:text-4xl font-bold text-foreground">│</div>
-          {/* Divisor */}
-          <div className="text-3xl sm:text-4xl font-bold text-center text-foreground">
-            {plan.divisor}
+          {/* Divisor on top, quotient below it (separated by horizontal bar) */}
+          <div className="flex flex-col items-center">
+            <div className="h-10 flex items-end text-3xl sm:text-4xl font-bold text-foreground">
+              {plan.divisor}
+            </div>
+            <div className="w-full h-0.5 bg-foreground" />
+            <div className="h-10 flex items-start text-3xl sm:text-4xl font-bold text-river">
+              {quotientDisplay || "?"}
+            </div>
           </div>
         </div>
 
