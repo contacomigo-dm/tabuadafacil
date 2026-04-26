@@ -36,15 +36,16 @@ interface StepRecord {
 function PlayDivisao() {
   const navigate = useNavigate();
 
-  // Resolve mode (free vs level) only once
+  // Resolve mode (free vs level) only once. Guard for SSR (no sessionStorage).
   const setup = useMemo(() => {
-    const free = sessionStorage.getItem("divFreeMode") === "1";
+    const ss = typeof window !== "undefined" ? window.sessionStorage : null;
+    const free = ss?.getItem("divFreeMode") === "1";
     if (free) {
-      const d = Number(sessionStorage.getItem("divFreeDividend") ?? "0");
-      const s = Number(sessionStorage.getItem("divFreeDivisor") ?? "2");
+      const d = Number(ss?.getItem("divFreeDividend") ?? "0");
+      const s = Number(ss?.getItem("divFreeDivisor") ?? "2");
       return { mode: "free" as const, dividend: d, divisor: s, level: 0 };
     }
-    const lvl = Number(sessionStorage.getItem("divLevel") ?? "1");
+    const lvl = Number(ss?.getItem("divLevel") ?? "1");
     const def = getDivisionLevel(lvl);
     return {
       mode: "level" as const,
