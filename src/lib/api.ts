@@ -9,26 +9,64 @@ export interface Student {
   current_streak: number;
   total_correct: number;
   total_wrong: number;
+  grade: string | null;
+  class_name: string | null;
+  shift: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export async function findOrCreateStudent(firstName: string): Promise<Student> {
+export interface StudentEnrollment {
+  grade?: string | null;
+  class_name?: string | null;
+  shift?: string | null;
+}
+
+export async function findOrCreateStudent(
+  firstName: string,
+  enrollment?: StudentEnrollment,
+): Promise<Student> {
   const name = firstName.trim();
   const { data: existing } = await supabase
     .from("students")
     .select("*")
     .ilike("first_name", name)
     .maybeSingle();
-  if (existing) return existing as Student;
+  if (existing) {
+    // Update enrollment info if provided and changed
+    if (enrollment && (enrollment.grade || enrollment.class_name || enrollment.shift)) {
+      const patch: Record<string, string> = {};
+      if (enrollment.grade && enrollment.grade !== existing.grade) patch.grade = enrollment.grade;
+      if (enrollment.class_name && enrollment.class_name !== existing.class_name) patch.class_name = enrollment.class_name;
+      if (enrollment.shift && enrollment.shift !== existing.shift) patch.shift = enrollment.shift;
+      if (Object.keys(patch).length > 0) {
+        const { data: updated } = await supabase
+          .from("students")
+          .update(patch)
+          .eq("id", existing.id)
+          .select("*")
+          .single();
+        if (updated) return updated as Student;
+      }
+    }
+    return existing as Student;
+  }
 
   const { data, error } = await supabase
     .from("students")
-    .insert({ first_name: name })
+    .insert({ first_name: name, ...(enrollment ?? {}) })
     .select("*")
     .single();
   if (error) throw error;
   return data as Student;
+}
+
+export async function deleteStudent(id: string) {
+  // Remove dependentes primeiro para evitar órfãos
+  await supabase.from("attempts").delete().eq("student_id", id);
+  await supabase.from("sessions").delete().eq("student_id", id);
+  const { error } = await supabase.from("students").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function updateStudent(id: string, patch: Partial<Student>) {
