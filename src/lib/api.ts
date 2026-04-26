@@ -35,7 +35,7 @@ export async function findOrCreateStudent(
   if (existing) {
     // Update enrollment info if provided and changed
     if (enrollment && (enrollment.grade || enrollment.class_name || enrollment.shift)) {
-      const patch: Record<string, string> = {};
+      const patch: { grade?: string; class_name?: string; shift?: string } = {};
       if (enrollment.grade && enrollment.grade !== existing.grade) patch.grade = enrollment.grade;
       if (enrollment.class_name && enrollment.class_name !== existing.class_name) patch.class_name = enrollment.class_name;
       if (enrollment.shift && enrollment.shift !== existing.shift) patch.shift = enrollment.shift;
