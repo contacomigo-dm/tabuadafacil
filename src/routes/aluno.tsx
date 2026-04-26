@@ -18,22 +18,37 @@ export const Route = createFileRoute("/aluno")({
 function AlunoEntry() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [grade, setGrade] = useState("");
+  const [className, setClassName] = useState("");
+  const [shift, setShift] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const GRADES = ["1ª", "2ª", "3ª"];
+  const CLASSES = ["A", "B", "C", "D"];
+  const SHIFTS = ["Manhã", "Tarde", "Noite"];
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = name.trim();
+    const trimmed = name.trim().replace(/\s+/g, " ");
     if (!trimmed) {
-      toast.error("Digite seu primeiro nome");
+      toast.error("Digite seu nome");
       return;
     }
-    if (trimmed.length > 30 || /\s/.test(trimmed)) {
-      toast.error("Use apenas o primeiro nome (sem espaços)");
+    if (trimmed.length > 60) {
+      toast.error("Nome muito longo");
+      return;
+    }
+    if (!grade || !className || !shift) {
+      toast.error("Selecione série, turma e turno");
       return;
     }
     setLoading(true);
     try {
-      const student = await findOrCreateStudent(trimmed);
+      const student = await findOrCreateStudent(trimmed, {
+        grade,
+        class_name: className,
+        shift,
+      });
       sessionStorage.setItem("studentId", student.id);
       sessionStorage.setItem("studentName", student.first_name);
       sessionStorage.removeItem("chosenLevel");
@@ -52,7 +67,7 @@ function AlunoEntry() {
   };
 
   return (
-    <main className="min-h-screen leaf-bg flex items-center justify-center px-4">
+    <main className="min-h-screen leaf-bg flex items-center justify-center px-4 py-8">
       <form
         onSubmit={handleStart}
         className="w-full max-w-md bg-card rounded-3xl p-8 shadow-[var(--shadow-soft)] border border-border"
@@ -62,21 +77,81 @@ function AlunoEntry() {
             👤
           </div>
           <h1 className="text-3xl font-extrabold text-foreground">Bem-vindo(a)!</h1>
-          <p className="text-muted-foreground mt-2">Digite seu primeiro nome para começar.</p>
+          <p className="text-muted-foreground mt-2">Preencha seus dados para começar.</p>
         </div>
 
         <label htmlFor="firstname" className="block text-sm font-semibold mb-2">
-          Primeiro nome
+          Nome
         </label>
         <Input
           id="firstname"
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Ex: Maria"
+          placeholder="Ex: Maria Silva"
           className="h-14 text-lg rounded-xl"
-          maxLength={30}
+          maxLength={60}
         />
+
+        <div className="mt-4">
+          <label className="block text-sm font-semibold mb-2">Série</label>
+          <div className="grid grid-cols-3 gap-2">
+            {GRADES.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGrade(g)}
+                className={`h-12 rounded-xl border font-bold transition ${
+                  grade === g
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border hover:border-primary"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-semibold mb-2">Turma</label>
+          <div className="grid grid-cols-4 gap-2">
+            {CLASSES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setClassName(c)}
+                className={`h-12 rounded-xl border font-bold transition ${
+                  className === c
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border hover:border-primary"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-semibold mb-2">Turno</label>
+          <div className="grid grid-cols-3 gap-2">
+            {SHIFTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setShift(s)}
+                className={`h-12 rounded-xl border font-semibold text-sm transition ${
+                  shift === s
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border hover:border-primary"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <Button
           type="submit"
