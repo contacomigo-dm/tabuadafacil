@@ -43,13 +43,9 @@ function AlunoEntry() {
   const goPlay = (student: Student) => {
     sessionStorage.setItem("studentId", student.id);
     sessionStorage.setItem("studentName", student.first_name);
+    sessionStorage.setItem("studentLevel", String(student.current_level));
     sessionStorage.removeItem("chosenLevel");
-    if (student.current_level > 1) {
-      navigate({ to: "/escolher-nivel" });
-    } else {
-      sessionStorage.setItem("chosenLevel", "1");
-      navigate({ to: "/jogar" });
-    }
+    navigate({ to: "/escolher-atividade" });
   };
 
   const handleNameSubmit = async (e: React.FormEvent) => {
