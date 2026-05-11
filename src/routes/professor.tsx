@@ -299,6 +299,35 @@ function StudentDetail({
       </div>
 
       <div className="bg-card rounded-2xl p-6 border border-border">
+        <h3 className="text-lg font-bold mb-1">Evolução mês a mês</h3>
+        <p className="text-xs text-muted-foreground mb-3">Acertos, erros e total de contas feitas por mês.</p>
+        {monthly.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Sem dados ainda.</p>
+        ) : (
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthly} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 12,
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="acertos" name="Acertos" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="erros" name="Erros" fill="hsl(var(--destructive))" radius={[6, 6, 0, 0]} />
+                <Line type="monotone" dataKey="contas" name="Contas feitas" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card rounded-2xl p-6 border border-border">
         <h3 className="text-lg font-bold mb-3">Tabuadas com mais erros</h3>
         {!stats || stats.tableStats.length === 0 ? (
           <p className="text-muted-foreground text-sm">Sem dados ainda.</p>
