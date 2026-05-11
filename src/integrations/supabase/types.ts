@@ -103,6 +103,7 @@ export type Database = {
           first_name: string
           grade: string | null
           id: string
+          password_hash: string | null
           shift: string | null
           total_correct: number
           total_wrong: number
@@ -117,6 +118,7 @@ export type Database = {
           first_name: string
           grade?: string | null
           id?: string
+          password_hash?: string | null
           shift?: string | null
           total_correct?: number
           total_wrong?: number
@@ -131,6 +133,7 @@ export type Database = {
           first_name?: string
           grade?: string | null
           id?: string
+          password_hash?: string | null
           shift?: string | null
           total_correct?: number
           total_wrong?: number
