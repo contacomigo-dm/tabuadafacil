@@ -31,25 +31,16 @@ function Index() {
           Matemática <span className="text-primary">Amazônica</span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-          Escolha uma atividade para praticar.
+          Faça seu login e escolha entre Tabuada da multiplicação ou Divisão longa.
         </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+        <div className="mt-10 max-w-sm mx-auto">
           <Link to="/aluno" className="block">
-            <div className="btn-pop bg-card border border-border rounded-3xl p-6 text-left hover:border-primary transition h-full">
-              <div className="text-4xl mb-2">✖️</div>
-              <div className="text-xl font-extrabold text-foreground">Tabuada</div>
+            <div className="btn-pop bg-card border border-border rounded-3xl p-6 text-center hover:border-primary transition">
+              <div className="text-4xl mb-2">👤</div>
+              <div className="text-xl font-extrabold text-foreground">Entrar como aluno</div>
               <div className="text-sm text-muted-foreground mt-1">
-                Pratique a tabuada do 2 ao 9 em níveis, com timer e sequências.
-              </div>
-            </div>
-          </Link>
-          <Link to="/divisao" className="block">
-            <div className="btn-pop bg-card border border-border rounded-3xl p-6 text-left hover:border-river transition h-full">
-              <div className="text-4xl mb-2">➗</div>
-              <div className="text-xl font-extrabold text-foreground">Divisão Longa</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Conta armada guiada, passo a passo, com verificação da multiplicação.
+                Depois você escolhe Tabuada ✖️ ou Divisão ➗.
               </div>
             </div>
           </Link>
