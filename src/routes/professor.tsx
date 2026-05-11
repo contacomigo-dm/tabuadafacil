@@ -259,6 +259,23 @@ function StudentDetail({
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
 
+  const monthly = useMemo(() => {
+    if (!stats) return [];
+    const map = new Map<string, { key: string; label: string; acertos: number; erros: number; sessoes: number; contas: number }>();
+    for (const s of stats.sessions) {
+      const d = new Date(s.started_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+      const row = map.get(key) ?? { key, label, acertos: 0, erros: 0, sessoes: 0, contas: 0 };
+      row.acertos += s.correct_count;
+      row.erros += s.wrong_count;
+      row.sessoes += 1;
+      row.contas += s.correct_count + s.wrong_count;
+      map.set(key, row);
+    }
+    return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
+  }, [stats]);
+
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-2xl p-6 border border-border">
