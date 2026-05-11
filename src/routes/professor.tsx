@@ -306,10 +306,10 @@ function StudentDetail({
         ) : (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthly} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <ComposedChart data={monthly} margin={{ top: 10, right: 20, left: 0, bottom: 0 }} barCategoryGap="30%" barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} padding={{ left: 30, right: 30 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} width={36} />
                 <Tooltip
                   contentStyle={{
                     background: "hsl(var(--card))",
