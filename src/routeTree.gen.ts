@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfessorRouteImport } from './routes/professor'
 import { Route as JogarRouteImport } from './routes/jogar'
 import { Route as EscolherNivelRouteImport } from './routes/escolher-nivel'
+import { Route as EscolherAtividadeRouteImport } from './routes/escolher-atividade'
 import { Route as DivisaoTreinoRouteImport } from './routes/divisao-treino'
 import { Route as DivisaoJogarRouteImport } from './routes/divisao-jogar'
 import { Route as DivisaoRouteImport } from './routes/divisao'
@@ -31,6 +32,11 @@ const JogarRoute = JogarRouteImport.update({
 const EscolherNivelRoute = EscolherNivelRouteImport.update({
   id: '/escolher-nivel',
   path: '/escolher-nivel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscolherAtividadeRoute = EscolherAtividadeRouteImport.update({
+  id: '/escolher-atividade',
+  path: '/escolher-atividade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DivisaoTreinoRoute = DivisaoTreinoRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/divisao': typeof DivisaoRoute
   '/divisao-jogar': typeof DivisaoJogarRoute
   '/divisao-treino': typeof DivisaoTreinoRoute
+  '/escolher-atividade': typeof EscolherAtividadeRoute
   '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/divisao': typeof DivisaoRoute
   '/divisao-jogar': typeof DivisaoJogarRoute
   '/divisao-treino': typeof DivisaoTreinoRoute
+  '/escolher-atividade': typeof EscolherAtividadeRoute
   '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/divisao': typeof DivisaoRoute
   '/divisao-jogar': typeof DivisaoJogarRoute
   '/divisao-treino': typeof DivisaoTreinoRoute
+  '/escolher-atividade': typeof EscolherAtividadeRoute
   '/escolher-nivel': typeof EscolherNivelRoute
   '/jogar': typeof JogarRoute
   '/professor': typeof ProfessorRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/divisao'
     | '/divisao-jogar'
     | '/divisao-treino'
+    | '/escolher-atividade'
     | '/escolher-nivel'
     | '/jogar'
     | '/professor'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/divisao'
     | '/divisao-jogar'
     | '/divisao-treino'
+    | '/escolher-atividade'
     | '/escolher-nivel'
     | '/jogar'
     | '/professor'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/divisao'
     | '/divisao-jogar'
     | '/divisao-treino'
+    | '/escolher-atividade'
     | '/escolher-nivel'
     | '/jogar'
     | '/professor'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   DivisaoRoute: typeof DivisaoRoute
   DivisaoJogarRoute: typeof DivisaoJogarRoute
   DivisaoTreinoRoute: typeof DivisaoTreinoRoute
+  EscolherAtividadeRoute: typeof EscolherAtividadeRoute
   EscolherNivelRoute: typeof EscolherNivelRoute
   JogarRoute: typeof JogarRoute
   ProfessorRoute: typeof ProfessorRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/escolher-nivel'
       fullPath: '/escolher-nivel'
       preLoaderRoute: typeof EscolherNivelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escolher-atividade': {
+      id: '/escolher-atividade'
+      path: '/escolher-atividade'
+      fullPath: '/escolher-atividade'
+      preLoaderRoute: typeof EscolherAtividadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/divisao-treino': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   DivisaoRoute: DivisaoRoute,
   DivisaoJogarRoute: DivisaoJogarRoute,
   DivisaoTreinoRoute: DivisaoTreinoRoute,
+  EscolherAtividadeRoute: EscolherAtividadeRoute,
   EscolherNivelRoute: EscolherNivelRoute,
   JogarRoute: JogarRoute,
   ProfessorRoute: ProfessorRoute,
