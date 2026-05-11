@@ -12,8 +12,71 @@ export interface Student {
   grade: string | null;
   class_name: string | null;
   shift: string | null;
+  password_hash: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Hash com salt baseado no nome (suficiente para um app escolar; senhas
+// nunca trafegam em claro fora da máquina do aluno).
+async function hashPassword(name: string, password: string): Promise<string> {
+  const salt = name.trim().toLowerCase();
+  const data = new TextEncoder().encode(`tabuada:${salt}:${password}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export function validatePasswordStrength(pw: string): string | null {
+  if (pw.length < 6) return "A senha deve ter pelo menos 6 caracteres";
+  if (!/[A-Za-z]/.test(pw)) return "A senha precisa ter pelo menos uma letra";
+  if (!/[0-9]/.test(pw)) return "A senha precisa ter pelo menos um número";
+  return null;
+}
+
+export async function findStudentByName(firstName: string): Promise<Student | null> {
+  const name = firstName.trim();
+  const { data } = await supabase
+    .from("students")
+    .select("*")
+    .ilike("first_name", name)
+    .maybeSingle();
+  return (data as Student) ?? null;
+}
+
+export async function verifyStudentPassword(
+  student: Student,
+  password: string,
+): Promise<boolean> {
+  if (!student.password_hash) return false;
+  const h = await hashPassword(student.first_name, password);
+  return h === student.password_hash;
+}
+
+export async function setStudentPassword(student: Student, password: string) {
+  const hash = await hashPassword(student.first_name, password);
+  const { error } = await supabase
+    .from("students")
+    .update({ password_hash: hash, updated_at: new Date().toISOString() })
+    .eq("id", student.id);
+  if (error) throw error;
+}
+
+export async function createStudentWithPassword(
+  firstName: string,
+  password: string,
+  enrollment: StudentEnrollment,
+): Promise<Student> {
+  const name = firstName.trim();
+  const hash = await hashPassword(name, password);
+  const { data, error } = await supabase
+    .from("students")
+    .insert({ first_name: name, password_hash: hash, ...enrollment })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as Student;
 }
 
 export interface StudentEnrollment {
