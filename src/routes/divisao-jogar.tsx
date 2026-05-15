@@ -72,6 +72,55 @@ function PlayDivisao() {
   const [problemsDone, setProblemsDone] = useState(0);
   const [showFinish, setShowFinish] = useState(false);
 
+  // Tracking para o histórico no painel do professor
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const correctRef = useRef(0);
+  const wrongRef = useRef(0);
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("studentId");
+    if (!id) return;
+    setStudentId(id);
+    const lvl = setup.mode === "level" ? setup.level : 0;
+    startSession(id, lvl)
+      .then((s) => setSessionId(s.id as string))
+      .catch(() => {});
+  }, [setup]);
+
+  useEffect(() => {
+    return () => {
+      if (sessionId) {
+        updateSession(sessionId, {
+          correct_count: correctRef.current,
+          wrong_count: wrongRef.current,
+          level_at_end: setup.mode === "level" ? setup.level : 0,
+          ended_at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+    };
+  }, [sessionId, setup]);
+
+  function recordAttempt(correct: boolean) {
+    if (correct) correctRef.current += 1;
+    else wrongRef.current += 1;
+    if (studentId) {
+      logAttempt({
+        studentId,
+        tableNum: plan.divisor,
+        multiplier: 0,
+        correct,
+        questionType: "division",
+      }).catch(() => {});
+    }
+    if (sessionId) {
+      updateSession(sessionId, {
+        correct_count: correctRef.current,
+        wrong_count: wrongRef.current,
+      }).catch(() => {});
+    }
+  }
+
   const currentStep = plan.steps[stepIdx];
   const totalDigits = plan.dividendDigits.length;
 
