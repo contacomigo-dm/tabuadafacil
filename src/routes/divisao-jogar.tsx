@@ -239,6 +239,7 @@ function PlayDivisao() {
     }
 
     if (v !== correctRem) {
+      recordAttempt(false);
       const newAttempts = remainderAttempts + 1;
       setRemainderAttempts(newAttempts);
       setHint(remainderHint(currentStep.chunk, q, plan.divisor, newAttempts));
@@ -263,6 +264,7 @@ function PlayDivisao() {
     const next = stepIdx + 1;
     if (next >= plan.steps.length) {
       // done
+      recordAttempt(true);
       setPhase("done");
       const newDone = problemsDone + 1;
       setProblemsDone(newDone);
