@@ -54,6 +54,7 @@ export type Database = {
       }
       sessions: {
         Row: {
+          activity: string
           correct_count: number
           ended_at: string | null
           id: string
@@ -64,6 +65,7 @@ export type Database = {
           wrong_count: number
         }
         Insert: {
+          activity?: string
           correct_count?: number
           ended_at?: string | null
           id?: string
@@ -74,6 +76,7 @@ export type Database = {
           wrong_count?: number
         }
         Update: {
+          activity?: string
           correct_count?: number
           ended_at?: string | null
           id?: string

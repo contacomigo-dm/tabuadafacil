@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, type Student } from "@/lib/api";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, type Student, type TableStat } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -259,23 +260,6 @@ function StudentDetail({
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
 
-  const monthly = useMemo(() => {
-    if (!stats) return [];
-    const map = new Map<string, { key: string; label: string; acertos: number; erros: number; sessoes: number; contas: number }>();
-    for (const s of stats.sessions) {
-      const d = new Date(s.started_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
-      const row = map.get(key) ?? { key, label, acertos: 0, erros: 0, sessoes: 0, contas: 0 };
-      row.acertos += s.correct_count;
-      row.erros += s.wrong_count;
-      row.sessoes += 1;
-      row.contas += s.correct_count + s.wrong_count;
-      map.set(key, row);
-    }
-    return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
-  }, [stats]);
-
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-2xl p-6 border border-border">
@@ -287,19 +271,98 @@ function StudentDetail({
         )}
         {!student.grade && !student.class_name && !student.shift && <div className="mb-4" />}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card label="Nível" value={student.current_level} />
+          <Card label="Nível atual" value={student.current_level} />
           <Card label="Maior sequência" value={student.best_streak} />
-          <Card label="% acerto" value={`${pct}%`} />
+          <Card label="% acerto geral" value={`${pct}%`} />
           <Card label="Total respondido" value={total} />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Card label="Acertos" value={student.total_correct} color="text-success" />
-          <Card label="Erros" value={student.total_wrong} color="text-destructive" />
+          <Card label="Acertos (geral)" value={student.total_correct} color="text-success" />
+          <Card label="Erros (geral)" value={student.total_wrong} color="text-destructive" />
+        </div>
+      </div>
+
+      <Tabs defaultValue="multiplication" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full max-w-md">
+          <TabsTrigger value="multiplication">✖️ Multiplicação</TabsTrigger>
+          <TabsTrigger value="division">➗ Divisão</TabsTrigger>
+        </TabsList>
+        <TabsContent value="multiplication" className="space-y-4 mt-4">
+          <ActivityPanel
+            label="multiplicação"
+            data={stats?.multiplication ?? null}
+            tableLabelPrefix="×"
+          />
+        </TabsContent>
+        <TabsContent value="division" className="space-y-4 mt-4">
+          <ActivityPanel
+            label="divisão"
+            data={stats?.division ?? null}
+            tableLabelPrefix="÷"
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+interface ActivityData {
+  tableStats: TableStat[];
+  sessions: Array<{
+    id: string;
+    started_at: string;
+    correct_count: number;
+    wrong_count: number;
+    level_at_start: number;
+    level_at_end: number;
+  }>;
+  totalCorrect: number;
+  totalWrong: number;
+}
+
+function ActivityPanel({
+  label,
+  data,
+  tableLabelPrefix,
+}: {
+  label: string;
+  data: ActivityData | null;
+  tableLabelPrefix: string;
+}) {
+  const monthly = useMemo(() => {
+    if (!data) return [];
+    const map = new Map<string, { key: string; label: string; acertos: number; erros: number; sessoes: number; contas: number }>();
+    for (const s of data.sessions) {
+      const d = new Date(s.started_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const lbl = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+      const row = map.get(key) ?? { key, label: lbl, acertos: 0, erros: 0, sessoes: 0, contas: 0 };
+      row.acertos += s.correct_count;
+      row.erros += s.wrong_count;
+      row.sessoes += 1;
+      row.contas += s.correct_count + s.wrong_count;
+      map.set(key, row);
+    }
+    return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
+  }, [data]);
+
+  const totalResp = (data?.totalCorrect ?? 0) + (data?.totalWrong ?? 0);
+  const pct = totalResp > 0 ? Math.round(((data?.totalCorrect ?? 0) / totalResp) * 100) : 0;
+
+  return (
+    <>
+      <div className="bg-card rounded-2xl p-6 border border-border">
+        <h3 className="text-lg font-bold mb-3">Resumo da {label}</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card label="Acertos" value={data?.totalCorrect ?? 0} color="text-success" />
+          <Card label="Erros" value={data?.totalWrong ?? 0} color="text-destructive" />
+          <Card label="% acerto" value={`${pct}%`} />
+          <Card label="Sessões" value={data?.sessions.length ?? 0} />
         </div>
       </div>
 
       <div className="bg-card rounded-2xl p-6 border border-border">
-        <h3 className="text-lg font-bold mb-1">Evolução mês a mês</h3>
+        <h3 className="text-lg font-bold mb-1">Evolução mês a mês — {label}</h3>
         <p className="text-xs text-muted-foreground mb-3">Acertos, erros e total de contas feitas por mês.</p>
         {monthly.length === 0 ? (
           <p className="text-muted-foreground text-sm">Sem dados ainda.</p>
@@ -310,13 +373,7 @@ function StudentDetail({
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} padding={{ left: 30, right: 30 }} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} width={36} />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 12,
-                  }}
-                />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="acertos" name="Acertos" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="erros" name="Erros" fill="hsl(var(--destructive))" radius={[6, 6, 0, 0]} />
@@ -328,22 +385,19 @@ function StudentDetail({
       </div>
 
       <div className="bg-card rounded-2xl p-6 border border-border">
-        <h3 className="text-lg font-bold mb-3">Tabuadas com mais erros</h3>
-        {!stats || stats.tableStats.length === 0 ? (
+        <h3 className="text-lg font-bold mb-3">Tabuadas com mais erros — {label}</h3>
+        {!data || data.tableStats.length === 0 ? (
           <p className="text-muted-foreground text-sm">Sem dados ainda.</p>
         ) : (
           <ul className="space-y-2">
-            {stats.tableStats.map((t) => {
+            {data.tableStats.map((t) => {
               const tot = t.correct + t.wrong;
               const errPct = tot > 0 ? Math.round((t.wrong / tot) * 100) : 0;
               return (
                 <li key={t.table_num} className="flex items-center gap-3">
-                  <div className="w-12 font-bold">×{t.table_num}</div>
+                  <div className="w-12 font-bold">{tableLabelPrefix}{t.table_num}</div>
                   <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-destructive"
-                      style={{ width: `${errPct}%` }}
-                    />
+                    <div className="h-full bg-destructive" style={{ width: `${errPct}%` }} />
                   </div>
                   <div className="text-sm tabular-nums w-32 text-right text-muted-foreground">
                     {t.wrong} erro(s) / {tot}
@@ -356,8 +410,8 @@ function StudentDetail({
       </div>
 
       <div className="bg-card rounded-2xl p-6 border border-border">
-        <h3 className="text-lg font-bold mb-3">Histórico de sessões</h3>
-        {!stats || stats.sessions.length === 0 ? (
+        <h3 className="text-lg font-bold mb-3">Histórico de sessões — {label}</h3>
+        {!data || data.sessions.length === 0 ? (
           <p className="text-muted-foreground text-sm">Sem sessões ainda.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -371,7 +425,7 @@ function StudentDetail({
                 </tr>
               </thead>
               <tbody>
-                {stats.sessions.map((s) => (
+                {data.sessions.map((s) => (
                   <tr key={s.id} className="border-b border-border/50">
                     <td className="py-2">
                       {new Date(s.started_at).toLocaleString("pt-BR", {
@@ -395,7 +449,7 @@ function StudentDetail({
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
