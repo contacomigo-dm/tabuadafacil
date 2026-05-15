@@ -207,27 +207,59 @@ export interface TableStat {
   wrong: number;
 }
 
+const MULT_TYPES = ["choose_result", "choose_operation"];
+
 export async function getStudentStats(studentId: string) {
   const { data: attempts } = await supabase
     .from("attempts")
-    .select("table_num, correct")
+    .select("table_num, correct, question_type")
     .eq("student_id", studentId);
 
-  const map = new Map<number, TableStat>();
-  for (const a of attempts ?? []) {
-    const s = map.get(a.table_num) ?? { table_num: a.table_num, correct: 0, wrong: 0 };
-    if (a.correct) s.correct++;
-    else s.wrong++;
-    map.set(a.table_num, s);
-  }
-  const tableStats = [...map.values()].sort((x, y) => y.wrong - x.wrong);
+  const buildTableStats = (rows: typeof attempts) => {
+    const map = new Map<number, TableStat>();
+    for (const a of rows ?? []) {
+      const s = map.get(a.table_num) ?? { table_num: a.table_num, correct: 0, wrong: 0 };
+      if (a.correct) s.correct++;
+      else s.wrong++;
+      map.set(a.table_num, s);
+    }
+    return [...map.values()].sort((x, y) => y.wrong - x.wrong);
+  };
+
+  const multAttempts = (attempts ?? []).filter((a) => MULT_TYPES.includes(a.question_type));
+  const divAttempts = (attempts ?? []).filter((a) => a.question_type === "division");
+
+  const tableStatsMult = buildTableStats(multAttempts);
+  const tableStatsDiv = buildTableStats(divAttempts);
 
   const { data: sessions } = await supabase
     .from("sessions")
     .select("*")
     .eq("student_id", studentId)
     .order("started_at", { ascending: false })
-    .limit(20);
+    .limit(50);
 
-  return { tableStats, sessions: sessions ?? [] };
+  const all = sessions ?? [];
+  const sessionsMult = all.filter((s) => (s.activity ?? "multiplication") === "multiplication");
+  const sessionsDiv = all.filter((s) => s.activity === "division");
+
+  const sumCorrect = (rows: typeof all) => rows.reduce((acc, s) => acc + (s.correct_count ?? 0), 0);
+  const sumWrong = (rows: typeof all) => rows.reduce((acc, s) => acc + (s.wrong_count ?? 0), 0);
+
+  return {
+    tableStats: tableStatsMult, // backwards-compat
+    sessions: all,
+    multiplication: {
+      tableStats: tableStatsMult,
+      sessions: sessionsMult,
+      totalCorrect: sumCorrect(sessionsMult),
+      totalWrong: sumWrong(sessionsMult),
+    },
+    division: {
+      tableStats: tableStatsDiv,
+      sessions: sessionsDiv,
+      totalCorrect: sumCorrect(sessionsDiv),
+      totalWrong: sumWrong(sessionsDiv),
+    },
+  };
 }
