@@ -156,10 +156,16 @@ export async function logAttempt(args: {
   });
 }
 
-export async function startSession(studentId: string, level: number) {
+export type Activity = "multiplication" | "division";
+
+export async function startSession(
+  studentId: string,
+  level: number,
+  activity: Activity = "multiplication",
+) {
   const { data, error } = await supabase
     .from("sessions")
-    .insert({ student_id: studentId, level_at_start: level, level_at_end: level })
+    .insert({ student_id: studentId, level_at_start: level, level_at_end: level, activity })
     .select("*")
     .single();
   if (error) throw error;
