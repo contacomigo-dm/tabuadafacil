@@ -13,7 +13,7 @@ import {
   remainderHint,
   type DivisionPlan,
 } from "@/lib/divisao";
-import { logAttempt, startSession, updateSession } from "@/lib/api";
+import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
 
 export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
@@ -77,15 +77,21 @@ function PlayDivisao() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const correctRef = useRef(0);
   const wrongRef = useRef(0);
+  const totalCorrectRef = useRef(0);
+  const totalWrongRef = useRef(0);
 
   useEffect(() => {
-    const id = sessionStorage.getItem("studentId");
-    if (!id) return;
-    setStudentId(id);
-    const lvl = setup.mode === "level" ? setup.level : 0;
-    startSession(id, lvl)
-      .then((s) => setSessionId(s.id as string))
-      .catch(() => {});
+    const name = sessionStorage.getItem("studentName");
+    if (!name) return;
+    (async () => {
+      const student = await findOrCreateStudent(name);
+      setStudentId(student.id);
+      totalCorrectRef.current = student.total_correct;
+      totalWrongRef.current = student.total_wrong;
+      const lvl = setup.mode === "level" ? setup.level : 0;
+      const s = await startSession(student.id, lvl);
+      setSessionId(s.id as string);
+    })().catch(() => {});
   }, [setup]);
 
   useEffect(() => {
@@ -102,8 +108,13 @@ function PlayDivisao() {
   }, [sessionId, setup]);
 
   function recordAttempt(correct: boolean) {
-    if (correct) correctRef.current += 1;
-    else wrongRef.current += 1;
+    if (correct) {
+      correctRef.current += 1;
+      totalCorrectRef.current += 1;
+    } else {
+      wrongRef.current += 1;
+      totalWrongRef.current += 1;
+    }
     if (studentId) {
       logAttempt({
         studentId,
@@ -111,6 +122,10 @@ function PlayDivisao() {
         multiplier: 0,
         correct,
         questionType: "division",
+      }).catch(() => {});
+      updateStudent(studentId, {
+        total_correct: totalCorrectRef.current,
+        total_wrong: totalWrongRef.current,
       }).catch(() => {});
     }
     if (sessionId) {
