@@ -13,7 +13,7 @@ import {
   remainderHint,
   type DivisionPlan,
 } from "@/lib/divisao";
-import { logAttempt, startSession, updateSession } from "@/lib/api";
+import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
 
 export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
