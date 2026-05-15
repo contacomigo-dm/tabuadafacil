@@ -168,6 +168,7 @@ function PlayDivisao() {
     }
     // Reject wrong quotient immediately — student must try again
     if (v !== currentStep.correctQuotient) {
+      recordAttempt(false);
       const newAttempts = quotientAttempts + 1;
       setQuotientAttempts(newAttempts);
       const product = v * plan.divisor;
