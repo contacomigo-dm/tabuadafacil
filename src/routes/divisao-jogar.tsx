@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import {
   remainderHint,
   type DivisionPlan,
 } from "@/lib/divisao";
+import { logAttempt, startSession, updateSession } from "@/lib/api";
 
 export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
