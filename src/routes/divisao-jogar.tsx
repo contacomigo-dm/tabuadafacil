@@ -89,7 +89,7 @@ function PlayDivisao() {
       totalCorrectRef.current = student.total_correct;
       totalWrongRef.current = student.total_wrong;
       const lvl = setup.mode === "level" ? setup.level : 0;
-      const s = await startSession(student.id, lvl);
+      const s = await startSession(student.id, lvl, "division");
       setSessionId(s.id as string);
     })().catch(() => {});
   }, [setup]);
