@@ -1,0 +1,1 @@
+ALTER TABLE public.sessions ADD COLUMN activity text NOT NULL DEFAULT 'multiplication';
