@@ -71,6 +71,8 @@ function PlayDivisao() {
   const [remainderAttempts, setRemainderAttempts] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
   const [problemsDone, setProblemsDone] = useState(0);
+  const [perfectStreak, setPerfectStreak] = useState(0);
+  const perfectFlagRef = useRef(true);
   const [showFinish, setShowFinish] = useState(false);
 
   // Tracking para o histórico no painel do professor
