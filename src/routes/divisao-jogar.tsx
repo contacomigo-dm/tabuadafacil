@@ -533,17 +533,18 @@ function PlayDivisao() {
             <div className="text-6xl mb-3">🏆</div>
             <h2 className="text-3xl font-extrabold text-primary">Nível concluído!</h2>
             <p className="text-muted-foreground mt-2">
-              Parabéns! Você completou {problemsDone} contas do Nível {setup.level}.
+              Parabéns! Você fez 3 contas seguidas sem nenhum erro no Nível {setup.level}.
+              {setup.mode === "level" && setup.level < 4 && " O próximo nível foi liberado!"}
             </p>
             <div className="mt-6 grid gap-2">
               <Button
                 onClick={() => {
                   setShowFinish(false);
                   setProblemsDone(0);
+                  setPerfectStreak(0);
                   if (setup.mode === "level" && setup.level < 4) {
                     sessionStorage.setItem("divLevel", String(setup.level + 1));
                     navigate({ to: "/divisao-jogar" });
-                    // Force a fresh setup by navigating to menu first would be cleaner; reload instead:
                     setTimeout(() => window.location.reload(), 50);
                   } else {
                     navigate({ to: "/divisao" });
@@ -559,6 +560,7 @@ function PlayDivisao() {
                 onClick={() => {
                   setShowFinish(false);
                   setProblemsDone(0);
+                  setPerfectStreak(0);
                   newProblem();
                 }}
                 variant="outline"
