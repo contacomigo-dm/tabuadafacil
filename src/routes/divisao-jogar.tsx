@@ -11,6 +11,7 @@ import {
   randomDividend,
   randomDivisor,
   remainderHint,
+  setDivisionUnlockedLevel,
   type DivisionPlan,
 } from "@/lib/divisao";
 import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
