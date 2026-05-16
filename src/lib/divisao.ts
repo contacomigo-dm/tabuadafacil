@@ -101,14 +101,29 @@ export interface DivisionLevel {
 }
 
 export const DIVISION_LEVELS: DivisionLevel[] = [
-  { level: 1, digits: 2, problemsToAdvance: 5, label: "Iniciante (2 algarismos)" },
-  { level: 2, digits: 3, problemsToAdvance: 5, label: "Intermediário (3 algarismos)" },
-  { level: 3, digits: 4, problemsToAdvance: 6, label: "Avançado (4 algarismos)" },
-  { level: 4, digits: 5, problemsToAdvance: 6, label: "Mestre (5 algarismos)" },
+  { level: 1, digits: 2, problemsToAdvance: 3, label: "Iniciante (2 algarismos)" },
+  { level: 2, digits: 3, problemsToAdvance: 3, label: "Intermediário (3 algarismos)" },
+  { level: 3, digits: 4, problemsToAdvance: 3, label: "Avançado (4 algarismos)" },
+  { level: 4, digits: 5, problemsToAdvance: 3, label: "Mestre (5 algarismos)" },
 ];
 
 export function getDivisionLevel(n: number): DivisionLevel {
   return DIVISION_LEVELS[Math.min(DIVISION_LEVELS.length - 1, Math.max(0, n - 1))];
+}
+
+/** Quantos níveis o aluno já desbloqueou (localStorage por aluno). */
+export function getDivisionUnlockedLevel(studentId: string | null): number {
+  if (typeof window === "undefined" || !studentId) return 1;
+  const raw = window.localStorage.getItem(`divUnlockedLevel:${studentId}`);
+  const n = raw ? parseInt(raw, 10) : 1;
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, DIVISION_LEVELS.length) : 1;
+}
+
+export function setDivisionUnlockedLevel(studentId: string | null, level: number) {
+  if (typeof window === "undefined" || !studentId) return;
+  const current = getDivisionUnlockedLevel(studentId);
+  const next = Math.max(current, Math.min(level, DIVISION_LEVELS.length));
+  window.localStorage.setItem(`divUnlockedLevel:${studentId}`, String(next));
 }
 
 /** Produce a friendly hint based on the chunk and divisor. */
