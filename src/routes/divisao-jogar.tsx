@@ -117,6 +117,7 @@ function PlayDivisao() {
     } else {
       wrongRef.current += 1;
       totalWrongRef.current += 1;
+      perfectFlagRef.current = false;
     }
     if (studentId) {
       logAttempt({
