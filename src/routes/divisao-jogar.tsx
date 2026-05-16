@@ -177,6 +177,7 @@ function PlayDivisao() {
     setQuotientAttempts(0);
     setRemainderAttempts(0);
     setHint(null);
+    perfectFlagRef.current = true;
   }
 
   function checkQuotient() {
