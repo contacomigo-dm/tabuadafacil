@@ -74,23 +74,34 @@ function DivisaoMenu() {
             Escolha um nível
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {DIVISION_LEVELS.map((l) => (
-              <button
-                key={l.level}
-                onClick={() => startLevel(l.level)}
-                className="text-left bg-card rounded-2xl p-5 border border-border shadow-[var(--shadow-soft)] hover:border-river transition flex items-center gap-4"
-              >
-                <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-river text-river-foreground font-bold text-lg">
-                  {l.level}
-                </span>
-                <div>
-                  <div className="font-bold text-foreground">{l.label}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {l.problemsToAdvance} contas para concluir o nível
+            {DIVISION_LEVELS.map((l) => {
+              const locked = l.level > unlocked;
+              return (
+                <button
+                  key={l.level}
+                  onClick={() => startLevel(l.level)}
+                  disabled={locked}
+                  className={
+                    "text-left bg-card rounded-2xl p-5 border border-border shadow-[var(--shadow-soft)] transition flex items-center gap-4 " +
+                    (locked
+                      ? "opacity-60 cursor-not-allowed"
+                      : "hover:border-river")
+                  }
+                >
+                  <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-river text-river-foreground font-bold text-lg">
+                    {locked ? "🔒" : l.level}
+                  </span>
+                  <div>
+                    <div className="font-bold text-foreground">{l.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {locked
+                        ? `Faça 3 contas seguidas sem erro no nível ${l.level - 1} para liberar`
+                        : "3 contas seguidas sem nenhum erro para avançar"}
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </section>
 
