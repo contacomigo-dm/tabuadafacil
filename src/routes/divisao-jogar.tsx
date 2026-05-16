@@ -11,6 +11,7 @@ import {
   randomDividend,
   randomDivisor,
   remainderHint,
+  setDivisionUnlockedLevel,
   type DivisionPlan,
 } from "@/lib/divisao";
 import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
@@ -70,6 +71,8 @@ function PlayDivisao() {
   const [remainderAttempts, setRemainderAttempts] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
   const [problemsDone, setProblemsDone] = useState(0);
+  const [perfectStreak, setPerfectStreak] = useState(0);
+  const perfectFlagRef = useRef(true);
   const [showFinish, setShowFinish] = useState(false);
 
   // Tracking para o histórico no painel do professor
@@ -114,6 +117,7 @@ function PlayDivisao() {
     } else {
       wrongRef.current += 1;
       totalWrongRef.current += 1;
+      perfectFlagRef.current = false;
     }
     if (studentId) {
       logAttempt({
@@ -173,6 +177,7 @@ function PlayDivisao() {
     setQuotientAttempts(0);
     setRemainderAttempts(0);
     setHint(null);
+    perfectFlagRef.current = true;
   }
 
   function checkQuotient() {
@@ -283,10 +288,20 @@ function PlayDivisao() {
       setPhase("done");
       const newDone = problemsDone + 1;
       setProblemsDone(newDone);
-      toast.success("🎉 Conta concluída!");
+      const wasPerfect = perfectFlagRef.current;
+      const newPerfect = wasPerfect ? perfectStreak + 1 : 0;
+      setPerfectStreak(newPerfect);
+      if (wasPerfect) {
+        toast.success(`🎉 Conta perfeita! ${newPerfect}/3 sem erro`);
+      } else {
+        toast.success("🎉 Conta concluída! (Você errou nesta — a sequência sem erro recomeça.)");
+      }
       if (setup.mode === "level") {
-        const def = (setup as Extract<typeof setup, { mode: "level" }>).def;
-        if (newDone >= def.problemsToAdvance) {
+        if (newPerfect >= 3) {
+          // libera o próximo nível
+          if (studentId && setup.level < 4) {
+            setDivisionUnlockedLevel(studentId, setup.level + 1);
+          }
           setShowFinish(true);
         }
       }
@@ -329,11 +344,16 @@ function PlayDivisao() {
           >
             ← Sair
           </button>
-          <div className="text-sm font-semibold text-muted-foreground">
+          <div className="text-sm font-semibold text-muted-foreground text-right">
             {setup.mode === "level" ? (
               <>
-                Nível {setup.level} · Conta {problemsDone + (phase === "done" ? 0 : 1)} /{" "}
-                {(setup as Extract<typeof setup, { mode: "level" }>).def.problemsToAdvance}
+                <div>Nível {setup.level}</div>
+                <div className="text-xs">
+                  Sequência sem erro: <span className="font-bold text-primary">{perfectStreak}/3</span>
+                  {!perfectFlagRef.current && phase !== "done" && (
+                    <span className="ml-1 text-destructive">(esta tem erro)</span>
+                  )}
+                </div>
               </>
             ) : (
               <>Treino livre</>
@@ -513,17 +533,18 @@ function PlayDivisao() {
             <div className="text-6xl mb-3">🏆</div>
             <h2 className="text-3xl font-extrabold text-primary">Nível concluído!</h2>
             <p className="text-muted-foreground mt-2">
-              Parabéns! Você completou {problemsDone} contas do Nível {setup.level}.
+              Parabéns! Você fez 3 contas seguidas sem nenhum erro no Nível {setup.level}.
+              {setup.mode === "level" && setup.level < 4 && " O próximo nível foi liberado!"}
             </p>
             <div className="mt-6 grid gap-2">
               <Button
                 onClick={() => {
                   setShowFinish(false);
                   setProblemsDone(0);
+                  setPerfectStreak(0);
                   if (setup.mode === "level" && setup.level < 4) {
                     sessionStorage.setItem("divLevel", String(setup.level + 1));
                     navigate({ to: "/divisao-jogar" });
-                    // Force a fresh setup by navigating to menu first would be cleaner; reload instead:
                     setTimeout(() => window.location.reload(), 50);
                   } else {
                     navigate({ to: "/divisao" });
@@ -539,6 +560,7 @@ function PlayDivisao() {
                 onClick={() => {
                   setShowFinish(false);
                   setProblemsDone(0);
+                  setPerfectStreak(0);
                   newProblem();
                 }}
                 variant="outline"
