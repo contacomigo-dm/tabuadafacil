@@ -288,10 +288,20 @@ function PlayDivisao() {
       setPhase("done");
       const newDone = problemsDone + 1;
       setProblemsDone(newDone);
-      toast.success("🎉 Conta concluída!");
+      const wasPerfect = perfectFlagRef.current;
+      const newPerfect = wasPerfect ? perfectStreak + 1 : 0;
+      setPerfectStreak(newPerfect);
+      if (wasPerfect) {
+        toast.success(`🎉 Conta perfeita! ${newPerfect}/3 sem erro`);
+      } else {
+        toast.success("🎉 Conta concluída! (Você errou nesta — a sequência sem erro recomeça.)");
+      }
       if (setup.mode === "level") {
-        const def = (setup as Extract<typeof setup, { mode: "level" }>).def;
-        if (newDone >= def.problemsToAdvance) {
+        if (newPerfect >= 3) {
+          // libera o próximo nível
+          if (studentId && setup.level < 4) {
+            setDivisionUnlockedLevel(studentId, setup.level + 1);
+          }
           setShowFinish(true);
         }
       }
