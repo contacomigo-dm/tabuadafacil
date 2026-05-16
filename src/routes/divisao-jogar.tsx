@@ -344,11 +344,16 @@ function PlayDivisao() {
           >
             ← Sair
           </button>
-          <div className="text-sm font-semibold text-muted-foreground">
+          <div className="text-sm font-semibold text-muted-foreground text-right">
             {setup.mode === "level" ? (
               <>
-                Nível {setup.level} · Conta {problemsDone + (phase === "done" ? 0 : 1)} /{" "}
-                {(setup as Extract<typeof setup, { mode: "level" }>).def.problemsToAdvance}
+                <div>Nível {setup.level}</div>
+                <div className="text-xs">
+                  Sequência sem erro: <span className="font-bold text-primary">{perfectStreak}/3</span>
+                  {!perfectFlagRef.current && phase !== "done" && (
+                    <span className="ml-1 text-destructive">(esta tem erro)</span>
+                  )}
+                </div>
               </>
             ) : (
               <>Treino livre</>
