@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, type Student, type TableStat } from "@/lib/api";
+import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, getOverallRanking, type Student, type TableStat, type RankingEntry } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -172,6 +172,8 @@ function TeacherPage() {
             <Button type="submit" className="bg-primary">Salvar nova senha</Button>
           </form>
         )}
+
+        <RankingGeral students={students} />
 
         <div className="grid lg:grid-cols-[300px,1fr] gap-6">
           {/* Students list */}
@@ -495,6 +497,107 @@ function Card({
         {label}
       </div>
       <div className={cn("text-2xl font-extrabold", color)}>{value}</div>
+    </div>
+  );
+}
+
+function RankingGeral({ students }: { students: Student[] }) {
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<string>("__all__");
+
+  useEffect(() => {
+    getOverallRanking().then(setRanking).catch(() => {});
+  }, [students.length]);
+
+  const turmas = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of students) {
+      const key = s.class_name?.trim() ? `${s.grade ?? ""} ${s.class_name}`.trim() : (s.grade ?? "Sem turma");
+      set.add(key);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [students]);
+
+  const filtered = useMemo(() => {
+    if (filter === "__all__") return ranking;
+    return ranking.filter((r) => {
+      const key = r.class_name?.trim() ? `${r.grade ?? ""} ${r.class_name}`.trim() : (r.grade ?? "Sem turma");
+      return key === filter;
+    });
+  }, [ranking, filter]);
+
+  const medals = ["🥇", "🥈", "🥉"];
+
+  return (
+    <div className="bg-card rounded-2xl border border-border mb-6">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between p-4"
+      >
+        <span className="text-lg font-extrabold flex items-center gap-2">🏆 Ranking geral</span>
+        <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <div className="flex flex-wrap gap-2 mb-3">
+            <button
+              onClick={() => setFilter("__all__")}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-sm font-semibold border transition",
+                filter === "__all__" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary",
+              )}
+            >
+              Todas as turmas
+            </button>
+            {turmas.map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilter(t)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-sm font-semibold border transition",
+                  filter === t ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-2">Sem dados de desempenho ainda.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b border-border">
+                    <th className="py-2 w-12">#</th>
+                    <th className="py-2">Aluno</th>
+                    <th className="py-2">Turma</th>
+                    <th className="py-2 text-right">Acertos</th>
+                    <th className="py-2 text-right">Erros</th>
+                    <th className="py-2 text-right">% acerto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r, i) => (
+                    <tr key={r.id} className="border-b border-border/50">
+                      <td className="py-2 text-lg">{medals[i] ?? <span className="text-muted-foreground font-bold">{i + 1}</span>}</td>
+                      <td className="py-2 font-bold">{r.first_name}</td>
+                      <td className="py-2 text-muted-foreground">
+                        {r.class_name?.trim() ? `${r.grade ?? ""} ${r.class_name}`.trim() : (r.grade ?? "—")}
+                      </td>
+                      <td className="py-2 text-right text-success font-semibold">{r.total_correct}</td>
+                      <td className="py-2 text-right text-destructive font-semibold">{r.total_wrong}</td>
+                      <td className="py-2 text-right tabular-nums">{r.accuracy}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -24,9 +24,10 @@ export const Route = createFileRoute("/aluno")({
 
 type Step = "name" | "login" | "register" | "set-password";
 
-const GRADES = ["1ª", "2ª", "3ª"];
+const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
 const SHIFTS = ["Manhã", "Tarde", "Noite"];
+const isEja = (g: string) => g.includes("EJA");
 
 function AlunoEntry() {
   const navigate = useNavigate();
@@ -108,7 +109,8 @@ function AlunoEntry() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!grade || !className || !shift) return toast.error("Selecione série, turma e turno");
+    if (!grade) return toast.error("Selecione a série");
+    if (!isEja(grade) && (!className || !shift)) return toast.error("Selecione turma e turno");
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password !== password2) return toast.error("As senhas não conferem");
@@ -116,8 +118,8 @@ function AlunoEntry() {
     try {
       const student = await createStudentWithPassword(name, password, {
         grade,
-        class_name: className,
-        shift,
+        class_name: isEja(grade) ? null : className,
+        shift: isEja(grade) ? null : shift,
       });
       toast.success("Cadastro feito!");
       goPlay(student);
@@ -234,12 +236,15 @@ function AlunoEntry() {
           <form onSubmit={handleRegister}>
             <div>
               <label className="block text-sm font-semibold mb-2">Série</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {GRADES.map((g) => (
                   <button
                     key={g}
                     type="button"
-                    onClick={() => setGrade(g)}
+                    onClick={() => {
+                      setGrade(g);
+                      if (isEja(g)) { setClassName(""); setShift(""); }
+                    }}
                     className={`h-12 rounded-xl border font-bold transition ${
                       grade === g
                         ? "bg-primary text-primary-foreground border-primary"
@@ -252,45 +257,49 @@ function AlunoEntry() {
               </div>
             </div>
 
-            <div className="mt-3">
-              <label className="block text-sm font-semibold mb-2">Turma</label>
-              <div className="grid grid-cols-4 gap-2">
-                {CLASSES.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setClassName(c)}
-                    className={`h-12 rounded-xl border font-bold transition ${
-                      className === c
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background border-border hover:border-primary"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {!isEja(grade) && (
+              <>
+                <div className="mt-3">
+                  <label className="block text-sm font-semibold mb-2">Turma</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {CLASSES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setClassName(c)}
+                        className={`h-12 rounded-xl border font-bold transition ${
+                          className === c
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:border-primary"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="mt-3">
-              <label className="block text-sm font-semibold mb-2">Turno</label>
-              <div className="grid grid-cols-3 gap-2">
-                {SHIFTS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setShift(s)}
-                    className={`h-12 rounded-xl border font-semibold text-sm transition ${
-                      shift === s
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background border-border hover:border-primary"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
+                <div className="mt-3">
+                  <label className="block text-sm font-semibold mb-2">Turno</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SHIFTS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setShift(s)}
+                        className={`h-12 rounded-xl border font-semibold text-sm transition ${
+                          shift === s
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:border-primary"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="mt-4 space-y-2">
               <label className="block text-sm font-semibold">Senha (letras + números)</label>

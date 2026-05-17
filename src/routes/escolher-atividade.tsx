@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { getClassRanking, type RankingEntry } from "@/lib/api";
 
 export const Route = createFileRoute("/escolher-atividade")({
   head: () => ({
@@ -14,7 +15,10 @@ export const Route = createFileRoute("/escolher-atividade")({
 function EscolherAtividade() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [level, setLevel] = useState(1);
+  const [top3, setTop3] = useState<RankingEntry[]>([]);
+  const [turmaLabel, setTurmaLabel] = useState("");
 
   useEffect(() => {
     const id = sessionStorage.getItem("studentId");
@@ -22,8 +26,24 @@ function EscolherAtividade() {
       navigate({ to: "/aluno" });
       return;
     }
+    setStudentId(id);
     setName(sessionStorage.getItem("studentName") ?? "");
     setLevel(Number(sessionStorage.getItem("studentLevel") ?? "1"));
+
+    // Carrega ranking da turma
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: me } = await supabase
+        .from("students")
+        .select("class_name, grade")
+        .eq("id", id)
+        .single();
+      const cn = (me?.class_name as string | null) ?? null;
+      const gr = (me?.grade as string | null) ?? null;
+      setTurmaLabel(cn ? `${gr ?? ""} ${cn}`.trim() : gr ?? "sua turma");
+      const ranking = await getClassRanking(cn, gr);
+      setTop3(ranking.slice(0, 3));
+    })().catch(() => {});
   }, [navigate]);
 
   const goTabuada = () => {
@@ -46,6 +66,8 @@ function EscolherAtividade() {
     sessionStorage.removeItem("studentLevel");
     navigate({ to: "/" });
   };
+
+  const medals = ["🥇", "🥈", "🥉"];
 
   return (
     <main className="min-h-screen leaf-bg flex flex-col items-center justify-center px-4 py-10">
@@ -76,6 +98,40 @@ function EscolherAtividade() {
               </div>
             </div>
           </button>
+        </div>
+
+        {/* Ranking TOP 3 da turma */}
+        <div className="mt-8 bg-card border border-border rounded-3xl p-6 text-left">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-extrabold text-foreground">🏆 TOP 3 — Turma {turmaLabel}</h2>
+          </div>
+          {top3.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Ninguém pontuou ainda. Pratique e seja o primeiro do ranking!
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {top3.map((r, i) => (
+                <li
+                  key={r.id}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                    r.id === studentId ? "bg-primary/10 border border-primary/30" : "bg-secondary/50"
+                  }`}
+                >
+                  <span className="text-2xl w-8 text-center">{medals[i]}</span>
+                  <span className="flex-1 font-bold text-foreground">
+                    {r.first_name}
+                    {r.id === studentId && (
+                      <span className="ml-2 text-xs font-semibold text-primary">(você)</span>
+                    )}
+                  </span>
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {r.total_correct} acertos · {r.accuracy}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <button
