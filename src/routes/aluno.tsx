@@ -24,9 +24,10 @@ export const Route = createFileRoute("/aluno")({
 
 type Step = "name" | "login" | "register" | "set-password";
 
-const GRADES = ["1ª", "2ª", "3ª"];
+const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
 const SHIFTS = ["Manhã", "Tarde", "Noite"];
+const isEja = (g: string) => g.includes("EJA");
 
 function AlunoEntry() {
   const navigate = useNavigate();
