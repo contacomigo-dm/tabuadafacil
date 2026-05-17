@@ -118,8 +118,8 @@ function AlunoEntry() {
     try {
       const student = await createStudentWithPassword(name, password, {
         grade,
-        class_name: className,
-        shift,
+        class_name: isEja(grade) ? null : className,
+        shift: isEja(grade) ? null : shift,
       });
       toast.success("Cadastro feito!");
       goPlay(student);
