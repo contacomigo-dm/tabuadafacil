@@ -109,7 +109,8 @@ function AlunoEntry() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!grade || !className || !shift) return toast.error("Selecione série, turma e turno");
+    if (!grade) return toast.error("Selecione a série");
+    if (!isEja(grade) && (!className || !shift)) return toast.error("Selecione turma e turno");
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password !== password2) return toast.error("As senhas não conferem");
