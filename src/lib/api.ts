@@ -201,6 +201,53 @@ export async function listStudents(): Promise<Student[]> {
   return (data ?? []) as Student[];
 }
 
+export interface RankingEntry {
+  id: string;
+  first_name: string;
+  class_name: string | null;
+  grade: string | null;
+  total_correct: number;
+  total_wrong: number;
+  accuracy: number; // 0-100
+  score: number; // ranking score
+}
+
+function rankStudents(rows: Student[]): RankingEntry[] {
+  return rows
+    .map((s) => {
+      const total = s.total_correct + s.total_wrong;
+      const accuracy = total > 0 ? (s.total_correct / total) * 100 : 0;
+      // Score privilegia acertos, mas exige consistência (acurácia)
+      const score = s.total_correct * (0.5 + accuracy / 200);
+      return {
+        id: s.id,
+        first_name: s.first_name,
+        class_name: s.class_name,
+        grade: s.grade,
+        total_correct: s.total_correct,
+        total_wrong: s.total_wrong,
+        accuracy: Math.round(accuracy),
+        score,
+      };
+    })
+    .filter((e) => e.total_correct + e.total_wrong > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+export async function getClassRanking(className: string | null, grade: string | null): Promise<RankingEntry[]> {
+  let q = supabase.from("students").select("*");
+  if (className) q = q.eq("class_name", className);
+  else q = q.is("class_name", null);
+  if (grade) q = q.eq("grade", grade);
+  const { data } = await q;
+  return rankStudents((data ?? []) as Student[]);
+}
+
+export async function getOverallRanking(): Promise<RankingEntry[]> {
+  const { data } = await supabase.from("students").select("*");
+  return rankStudents((data ?? []) as Student[]);
+}
+
 export interface TableStat {
   table_num: number;
   correct: number;
