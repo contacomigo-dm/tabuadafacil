@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, type Student, type TableStat } from "@/lib/api";
+import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, getOverallRanking, type Student, type TableStat, type RankingEntry } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
