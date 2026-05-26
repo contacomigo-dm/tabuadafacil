@@ -19,9 +19,11 @@ export interface Student {
 
 // Hash com salt baseado no nome (suficiente para um app escolar; senhas
 // nunca trafegam em claro fora da máquina do aluno).
+// Senha é case-insensitive: convertemos para minúsculas antes do hash.
 async function hashPassword(name: string, password: string): Promise<string> {
   const salt = name.trim().toLowerCase();
-  const data = new TextEncoder().encode(`tabuada:${salt}:${password}`);
+  const pw = password.toLowerCase();
+  const data = new TextEncoder().encode(`tabuada:${salt}:${pw}`);
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -33,6 +35,53 @@ export function validatePasswordStrength(pw: string): string | null {
   if (!/[A-Za-z]/.test(pw)) return "A senha precisa ter pelo menos uma letra";
   if (!/[0-9]/.test(pw)) return "A senha precisa ter pelo menos um número";
   return null;
+}
+
+export async function listStudentsByEnrollment(
+  grade: string,
+  className: string | null,
+  shift: string | null,
+): Promise<Student[]> {
+  let q = supabase.from("students").select("*").eq("grade", grade);
+  if (className) q = q.eq("class_name", className);
+  else q = q.is("class_name", null);
+  if (shift) q = q.eq("shift", shift);
+  else q = q.is("shift", null);
+  const { data, error } = await q.order("first_name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Student[];
+}
+
+export async function createStudentsRoster(
+  names: string[],
+  enrollment: StudentEnrollment,
+): Promise<{ created: number; skipped: string[] }> {
+  const clean = Array.from(
+    new Set(
+      names
+        .map((n) => n.trim().replace(/\s+/g, " "))
+        .filter((n) => n.length > 0 && n.length <= 60),
+    ),
+  );
+  if (clean.length === 0) return { created: 0, skipped: [] };
+
+  // Verifica nomes já existentes (case-insensitive) na mesma turma para evitar duplicatas
+  const existing = await listStudentsByEnrollment(
+    enrollment.grade ?? "",
+    enrollment.class_name ?? null,
+    enrollment.shift ?? null,
+  );
+  const existingSet = new Set(existing.map((s) => s.first_name.toLowerCase()));
+
+  const toInsert = clean.filter((n) => !existingSet.has(n.toLowerCase()));
+  const skipped = clean.filter((n) => existingSet.has(n.toLowerCase()));
+
+  if (toInsert.length > 0) {
+    const rows = toInsert.map((first_name) => ({ first_name, ...enrollment }));
+    const { error } = await supabase.from("students").insert(rows);
+    if (error) throw error;
+  }
+  return { created: toInsert.length, skipped };
 }
 
 export async function findStudentByName(firstName: string): Promise<Student | null> {
