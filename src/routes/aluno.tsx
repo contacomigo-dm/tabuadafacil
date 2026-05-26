@@ -3,11 +3,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  findStudentByName,
   verifyStudentPassword,
   setStudentPassword,
-  createStudentWithPassword,
   validatePasswordStrength,
+  listStudentsByEnrollment,
   type Student,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -16,13 +15,13 @@ export const Route = createFileRoute("/aluno")({
   head: () => ({
     meta: [
       { title: "Entrar como aluno — Tabuada Amazônica" },
-      { name: "description", content: "Digite seu nome e senha para começar a praticar a tabuada." },
+      { name: "description", content: "Escolha sua turma, seu nome e sua senha para começar." },
     ],
   }),
   component: AlunoEntry,
 });
 
-type Step = "name" | "login" | "register" | "set-password";
+type Step = "enrollment" | "pick-name" | "login" | "set-password";
 
 const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
@@ -31,14 +30,14 @@ const isEja = (g: string) => g.includes("EJA");
 
 function AlunoEntry() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("name");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
+  const [step, setStep] = useState<Step>("enrollment");
   const [grade, setGrade] = useState("");
   const [className, setClassName] = useState("");
   const [shift, setShift] = useState("");
-  const [existing, setExisting] = useState<Student | null>(null);
+  const [roster, setRoster] = useState<Student[]>([]);
+  const [selected, setSelected] = useState<Student | null>(null);
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const [loading, setLoading] = useState(false);
 
   const goPlay = (student: Student) => {
@@ -49,41 +48,50 @@ function AlunoEntry() {
     navigate({ to: "/escolher-atividade" });
   };
 
-  const handleNameSubmit = async (e: React.FormEvent) => {
+  const handleEnrollment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = name.trim().replace(/\s+/g, " ");
-    if (!trimmed) return toast.error("Digite seu nome");
-    if (trimmed.length > 60) return toast.error("Nome muito longo");
-    setName(trimmed);
+    if (!grade) return toast.error("Selecione a série");
+    if (!isEja(grade) && (!className || !shift)) return toast.error("Selecione turma e turno");
     setLoading(true);
     try {
-      const found = await findStudentByName(trimmed);
-      if (found) {
-        setExisting(found);
-        setStep(found.password_hash ? "login" : "set-password");
-      } else {
-        setStep("register");
+      const list = await listStudentsByEnrollment(
+        grade,
+        isEja(grade) ? null : className,
+        isEja(grade) ? null : shift,
+      );
+      if (list.length === 0) {
+        toast.error("Nenhum aluno cadastrado nesta turma. Peça ao professor para te cadastrar.");
+        return;
       }
+      setRoster(list);
+      setStep("pick-name");
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao verificar nome");
+      toast.error("Erro ao carregar lista");
     } finally {
       setLoading(false);
     }
   };
 
+  const handlePickName = (s: Student) => {
+    setSelected(s);
+    setPassword("");
+    setPassword2("");
+    setStep(s.password_hash ? "login" : "set-password");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!existing) return;
+    if (!selected) return;
     setLoading(true);
     try {
-      const ok = await verifyStudentPassword(existing, password);
+      const ok = await verifyStudentPassword(selected, password);
       if (!ok) {
         toast.error("Senha incorreta");
         setPassword("");
         return;
       }
-      goPlay(existing);
+      goPlay(selected);
     } finally {
       setLoading(false);
     }
@@ -91,15 +99,17 @@ function AlunoEntry() {
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!existing) return;
+    if (!selected) return;
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
-    if (password !== password2) return toast.error("As senhas não conferem");
+    if (password.toLowerCase() !== password2.toLowerCase()) {
+      return toast.error("As senhas não conferem");
+    }
     setLoading(true);
     try {
-      await setStudentPassword(existing, password);
-      toast.success("Senha criada! Bem-vindo(a) de volta.");
-      goPlay(existing);
+      await setStudentPassword(selected, password);
+      toast.success("Senha criada! Boa prática 🌱");
+      goPlay(selected);
     } catch {
       toast.error("Erro ao salvar senha");
     } finally {
@@ -107,35 +117,18 @@ function AlunoEntry() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!grade) return toast.error("Selecione a série");
-    if (!isEja(grade) && (!className || !shift)) return toast.error("Selecione turma e turno");
-    const err = validatePasswordStrength(password);
-    if (err) return toast.error(err);
-    if (password !== password2) return toast.error("As senhas não conferem");
-    setLoading(true);
-    try {
-      const student = await createStudentWithPassword(name, password, {
-        grade,
-        class_name: isEja(grade) ? null : className,
-        shift: isEja(grade) ? null : shift,
-      });
-      toast.success("Cadastro feito!");
-      goPlay(student);
-    } catch (err) {
-      console.error(err);
-      toast.error("Não foi possível cadastrar.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const back = () => {
-    setStep("name");
-    setPassword("");
-    setPassword2("");
-    setExisting(null);
+    if (step === "login" || step === "set-password") {
+      setSelected(null);
+      setPassword("");
+      setPassword2("");
+      setStep("pick-name");
+    } else if (step === "pick-name") {
+      setRoster([]);
+      setStep("enrollment");
+    } else {
+      navigate({ to: "/" });
+    }
   };
 
   return (
@@ -146,94 +139,21 @@ function AlunoEntry() {
             👤
           </div>
           <h1 className="text-3xl font-extrabold text-foreground">
-            {step === "name" && "Bem-vindo(a)!"}
-            {step === "login" && `Olá, ${name}!`}
+            {step === "enrollment" && "Bem-vindo(a)!"}
+            {step === "pick-name" && "Encontre seu nome"}
+            {step === "login" && `Olá, ${selected?.first_name}!`}
             {step === "set-password" && "Crie sua senha"}
-            {step === "register" && "Novo cadastro"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            {step === "name" && "Digite seu nome para começar."}
+            {step === "enrollment" && "Selecione sua série e turma."}
+            {step === "pick-name" && "Toque no seu nome para continuar."}
             {step === "login" && "Digite sua senha para continuar."}
             {step === "set-password" && "Esta será sua senha para os próximos acessos."}
-            {step === "register" && "Preencha seus dados e crie uma senha."}
           </p>
         </div>
 
-        {step === "name" && (
-          <form onSubmit={handleNameSubmit}>
-            <label htmlFor="firstname" className="block text-sm font-semibold mb-2">Nome</label>
-            <Input
-              id="firstname"
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Maria Silva"
-              className="h-14 text-lg rounded-xl"
-              maxLength={60}
-            />
-            <Button
-              type="submit"
-              disabled={loading}
-              className="btn-pop mt-6 w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
-            >
-              {loading ? "Verificando..." : "Continuar"}
-            </Button>
-          </form>
-        )}
-
-        {step === "login" && (
-          <form onSubmit={handleLogin}>
-            <label className="block text-sm font-semibold mb-2">Senha</label>
-            <Input
-              type="password"
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sua senha"
-              className="h-14 text-lg rounded-xl"
-            />
-            <Button
-              type="submit"
-              disabled={loading}
-              className="btn-pop mt-6 w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
-            >
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
-        )}
-
-        {step === "set-password" && (
-          <form onSubmit={handleSetPassword} className="space-y-3">
-            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
-              Reconhecemos seu cadastro. Crie uma senha (com letras e números) para proteger seu acesso.
-            </p>
-            <Input
-              type="password"
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nova senha (letras + números)"
-              className="h-14 text-lg rounded-xl"
-            />
-            <Input
-              type="password"
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              placeholder="Confirme a senha"
-              className="h-14 text-lg rounded-xl"
-            />
-            <Button
-              type="submit"
-              disabled={loading}
-              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
-            >
-              {loading ? "Salvando..." : "Salvar e jogar"}
-            </Button>
-          </form>
-        )}
-
-        {step === "register" && (
-          <form onSubmit={handleRegister}>
+        {step === "enrollment" && (
+          <form onSubmit={handleEnrollment}>
             <div>
               <label className="block text-sm font-semibold mb-2">Série</label>
               <div className="grid grid-cols-2 gap-2">
@@ -257,7 +177,7 @@ function AlunoEntry() {
               </div>
             </div>
 
-            {!isEja(grade) && (
+            {!isEja(grade) && grade && (
               <>
                 <div className="mt-3">
                   <label className="block text-sm font-semibold mb-2">Turma</label>
@@ -301,37 +221,99 @@ function AlunoEntry() {
               </>
             )}
 
-            <div className="mt-4 space-y-2">
-              <label className="block text-sm font-semibold">Senha (letras + números)</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mín. 6, com letras e números"
-                className="h-12 rounded-xl"
-              />
-              <Input
-                type="password"
-                value={password2}
-                onChange={(e) => setPassword2(e.target.value)}
-                placeholder="Confirme a senha"
-                className="h-12 rounded-xl"
-              />
-            </div>
-
             <Button
               type="submit"
               disabled={loading}
               className="btn-pop mt-6 w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
             >
-              {loading ? "Cadastrando..." : "Cadastrar e jogar"}
+              {loading ? "Carregando..." : "Continuar"}
+            </Button>
+          </form>
+        )}
+
+        {step === "pick-name" && (
+          <div>
+            <div className="text-xs text-muted-foreground mb-3 bg-secondary/50 rounded-xl p-3">
+              {[grade, !isEja(grade) && className && `Turma ${className}`, !isEja(grade) && shift]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+            <ul className="max-h-[50vh] overflow-y-auto space-y-1.5 pr-1">
+              {roster.map((s) => (
+                <li key={s.id}>
+                  <button
+                    onClick={() => handlePickName(s)}
+                    className="w-full text-left rounded-xl p-3 bg-background hover:bg-secondary border border-border hover:border-primary transition flex items-center justify-between"
+                  >
+                    <span className="font-bold">{s.first_name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {s.password_hash ? "🔒 já tem senha" : "✨ criar senha"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {step === "login" && (
+          <form onSubmit={handleLogin}>
+            <label className="block text-sm font-semibold mb-2">Senha</label>
+            <Input
+              type="password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Sua senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              A senha não diferencia maiúsculas de minúsculas.
+            </p>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop mt-6 w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Entrando..." : "Entrar"}
+            </Button>
+          </form>
+        )}
+
+        {step === "set-password" && (
+          <form onSubmit={handleSetPassword} className="space-y-3">
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
+              Não diferenciamos maiúsculas de minúsculas.
+            </p>
+            <Input
+              type="password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nova senha (letras + números)"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Input
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              placeholder="Confirme a senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Salvando..." : "Salvar e jogar"}
             </Button>
           </form>
         )}
 
         <button
           type="button"
-          onClick={() => (step === "name" ? navigate({ to: "/" }) : back())}
+          onClick={back}
           className="mt-4 w-full text-sm text-muted-foreground hover:text-foreground"
         >
           ← Voltar

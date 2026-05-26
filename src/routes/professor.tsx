@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, getOverallRanking, type Student, type TableStat, type RankingEntry } from "@/lib/api";
+import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, getOverallRanking, createStudentsRoster, type Student, type TableStat, type RankingEntry } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -174,6 +174,14 @@ function TeacherPage() {
         )}
 
         <RankingGeral students={students} />
+
+        <RosterManager
+          onCreated={async () => {
+            const fresh = await listStudents();
+            setStudents(fresh);
+          }}
+        />
+
 
         <div className="grid lg:grid-cols-[300px,1fr] gap-6">
           {/* Students list */}
@@ -601,3 +609,167 @@ function RankingGeral({ students }: { students: Student[] }) {
     </div>
   );
 }
+
+const ROSTER_GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
+const ROSTER_CLASSES = ["A", "B", "C", "D"];
+const ROSTER_SHIFTS = ["Manhã", "Tarde", "Noite"];
+const isRosterEja = (g: string) => g.includes("EJA");
+
+function RosterManager({ onCreated }: { onCreated: () => void | Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [grade, setGrade] = useState("");
+  const [className, setClassName] = useState("");
+  const [shift, setShift] = useState("");
+  const [bulk, setBulk] = useState("");
+  const [single, setSingle] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const eja = isRosterEja(grade);
+  const enrollmentValid = !!grade && (eja || (!!className && !!shift));
+
+  const parseNames = (raw: string) =>
+    raw
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+  const submit = async (names: string[]) => {
+    if (!enrollmentValid) return toast.error("Selecione série/turma/turno");
+    if (names.length === 0) return toast.error("Adicione pelo menos um nome");
+    setSaving(true);
+    try {
+      const res = await createStudentsRoster(names, {
+        grade,
+        class_name: eja ? null : className,
+        shift: eja ? null : shift,
+      });
+      if (res.created > 0) toast.success(`${res.created} aluno(s) cadastrado(s)`);
+      if (res.skipped.length > 0)
+        toast.info(`${res.skipped.length} já existia(m): ${res.skipped.slice(0, 5).join(", ")}${res.skipped.length > 5 ? "…" : ""}`);
+      setBulk("");
+      setSingle("");
+      await onCreated();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao cadastrar alunos");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-border mb-6">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between p-4"
+      >
+        <span className="text-lg font-extrabold flex items-center gap-2">📝 Cadastrar alunos</span>
+        <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Série</label>
+              <div className="flex flex-wrap gap-1.5">
+                {ROSTER_GRADES.map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => { setGrade(g); if (isRosterEja(g)) { setClassName(""); setShift(""); } }}
+                    className={cn("px-3 py-1.5 rounded-lg border text-sm font-semibold transition", grade === g ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary")}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {!eja && (
+              <>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Turma</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ROSTER_CLASSES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setClassName(c)}
+                        className={cn("w-10 h-9 rounded-lg border text-sm font-semibold transition", className === c ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary")}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Turno</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ROSTER_SHIFTS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setShift(s)}
+                        className={cn("px-3 py-1.5 rounded-lg border text-sm font-semibold transition", shift === s ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary")}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
+              Colar lista (um nome por linha, ou separados por vírgula)
+            </label>
+            <textarea
+              value={bulk}
+              onChange={(e) => setBulk(e.target.value)}
+              placeholder={"Ana Silva\nBruno Costa\nCarla Souza"}
+              className="w-full min-h-[140px] rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <Button
+              type="button"
+              disabled={saving}
+              onClick={() => submit(parseNames(bulk))}
+              className="mt-2 bg-primary"
+            >
+              {saving ? "Salvando..." : `Cadastrar ${parseNames(bulk).length} aluno(s)`}
+            </Button>
+          </div>
+
+          <div className="border-t border-border pt-3">
+            <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
+              Cadastrar individual
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              <Input
+                value={single}
+                onChange={(e) => setSingle(e.target.value)}
+                placeholder="Nome do aluno"
+                className="flex-1 min-w-[200px]"
+                maxLength={60}
+              />
+              <Button
+                type="button"
+                disabled={saving || !single.trim()}
+                onClick={() => submit([single.trim()])}
+                className="bg-primary"
+              >
+                Adicionar
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Os alunos cadastrados aqui aparecerão para selecionar o próprio nome no primeiro acesso e então criarem a senha (letras + números, sem diferenciar maiúsculas).
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
