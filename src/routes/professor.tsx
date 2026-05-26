@@ -175,6 +175,14 @@ function TeacherPage() {
 
         <RankingGeral students={students} />
 
+        <RosterManager
+          onCreated={async () => {
+            const fresh = await listStudents();
+            setStudents(fresh);
+          }}
+        />
+
+
         <div className="grid lg:grid-cols-[300px,1fr] gap-6">
           {/* Students list */}
           <aside className="bg-card rounded-2xl p-3 border border-border h-fit">
