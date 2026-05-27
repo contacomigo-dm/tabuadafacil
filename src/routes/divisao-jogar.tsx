@@ -727,19 +727,21 @@ function StepRows({
         style={{ gridTemplateColumns: `repeat(${cols}, ${colW}px) auto ${colW * 2}px` }}
       >
         {Array.from({ length: cols }).map((_, i) => {
-          if (i === productStart - 1) {
+          const showMinusHere = productStart === 0 ? i === 0 : i === productStart - 1;
+          if (showMinusHere) {
             return (
               <div
                 key={`p-${i}`}
                 className="text-2xl sm:text-3xl font-bold text-destructive text-center"
                 style={{ width: `${colW}px` }}
               >
-                −
+                {productStart === 0 ? `−${productStr[0]}` : "−"}
               </div>
             );
           }
-          if (i >= productStart && i <= endCol) {
-            const ch = productStr[i - productStart];
+          const digitIndex = productStart === 0 ? i - 1 : i - productStart;
+          if (digitIndex >= 0 && digitIndex < productStr.length && i <= endCol) {
+            const ch = productStr[digitIndex];
             return (
               <div
                 key={`p-${i}`}
