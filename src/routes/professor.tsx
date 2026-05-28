@@ -202,7 +202,10 @@ function TeacherPage() {
           </form>
         )}
 
-        <RankingGeral students={students} />
+        <RankingGeral students={students} onSelectStudent={(id) => {
+          const st = students.find((x) => x.id === id);
+          if (st) selectStudent(st);
+        }} />
 
         <RosterManager
           onCreated={async () => {
