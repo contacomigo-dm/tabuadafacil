@@ -821,7 +821,12 @@ function StepRows({
             return (
               <div
                 key={`r-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-foreground text-center"
+                className={cn(
+                  "text-2xl sm:text-3xl font-bold text-center",
+                  isActiveChunk
+                    ? "text-river bg-river/15 rounded-md"
+                    : "text-foreground",
+                )}
                 style={{ width: `${colW}px` }}
               >
                 {ch}
