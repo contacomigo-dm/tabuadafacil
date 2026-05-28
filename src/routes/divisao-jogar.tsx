@@ -739,7 +739,7 @@ function StepRows({
               </div>
             );
           }
-          const digitIndex = productStart === 0 ? i - 1 : i - productStart;
+          const digitIndex = i - productStart;
           if (digitIndex >= 0 && digitIndex < productStr.length && i <= endCol) {
             const ch = productStr[digitIndex];
             return (
@@ -873,7 +873,7 @@ function CurrentProductRow({
               </div>
             );
           }
-          const digitIndex = productStart === 0 ? i - 1 : i - productStart;
+          const digitIndex = i - productStart;
           if (digitIndex >= 0 && digitIndex < productStr.length && i <= endCol) {
             const ch = productStr[digitIndex];
             return (
