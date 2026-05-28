@@ -38,6 +38,35 @@ function TeacherPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [turmaFilter, setTurmaFilter] = useState<string>("__all__");
+
+  const selectStudent = (s: Student) => {
+    setSelected(s);
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        document.getElementById("student-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
+
+  const turmaKeyOf = (s: { grade: string | null; class_name: string | null }) =>
+    s.class_name?.trim() ? `${s.grade ?? ""} ${s.class_name}`.trim() : (s.grade ?? "Sem turma");
+
+  const allTurmas = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of students) set.add(turmaKeyOf(s));
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [students]);
+
+  const filteredStudents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return students.filter((s) => {
+      if (turmaFilter !== "__all__" && turmaKeyOf(s) !== turmaFilter) return false;
+      if (q && !s.first_name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [students, search, turmaFilter]);
 
   // Session auth
   useEffect(() => {
@@ -173,7 +202,10 @@ function TeacherPage() {
           </form>
         )}
 
-        <RankingGeral students={students} />
+        <RankingGeral students={students} onSelectStudent={(id) => {
+          const st = students.find((x) => x.id === id);
+          if (st) selectStudent(st);
+        }} />
 
         <RosterManager
           onCreated={async () => {
@@ -192,87 +224,126 @@ function TeacherPage() {
             {students.length === 0 ? (
               <p className="text-sm text-muted-foreground p-4">Nenhum aluno ainda.</p>
             ) : (
-              (() => {
-                // Agrupa por turma (class_name). Quando não houver, vai para "Sem turma".
-                const groups = new Map<string, Student[]>();
-                for (const s of students) {
-                  const key = s.class_name?.trim() || "Sem turma";
-                  const arr = groups.get(key) ?? [];
-                  arr.push(s);
-                  groups.set(key, arr);
-                }
-                const ordered = [...groups.entries()].sort(([a], [b]) => {
-                  if (a === "Sem turma") return 1;
-                  if (b === "Sem turma") return -1;
-                  return a.localeCompare(b, "pt-BR");
-                });
-                return (
-                  <div className="space-y-4">
-                    {ordered.map(([turma, alunos]) => (
-                      <div key={turma}>
-                        <div className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-river flex items-center justify-between">
-                          <span>Turma {turma}</span>
-                          <span className="text-muted-foreground font-semibold">{alunos.length}</span>
-                        </div>
-                        <ul className="space-y-1">
-                          {alunos.map((s) => (
-                            <li key={s.id} className="group relative">
-                              <button
-                                onClick={() => setSelected(s)}
-                                className={cn(
-                                  "w-full text-left rounded-xl p-3 pr-12 transition-colors",
-                                  selected?.id === s.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "hover:bg-secondary",
-                                )}
-                              >
-                                <div className="font-bold">{s.first_name}</div>
-                                <div
-                                  className={cn(
-                                    "text-xs",
-                                    selected?.id === s.id ? "text-primary-foreground/80" : "text-muted-foreground",
-                                  )}
-                                >
-                                  {[s.grade, s.shift].filter(Boolean).join(" · ") || `Nível ${s.current_level}`}
-                                </div>
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={`Excluir ${s.first_name}`}
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (!confirm(`Excluir o aluno "${s.first_name}" e todo o seu histórico? Esta ação não pode ser desfeita.`)) return;
-                                  try {
-                                    await deleteStudent(s.id);
-                                    setStudents((prev) => prev.filter((x) => x.id !== s.id));
-                                    if (selected?.id === s.id) setSelected(null);
-                                    toast.success("Aluno excluído");
-                                  } catch {
-                                    toast.error("Erro ao excluir aluno");
-                                  }
-                                }}
-                                className={cn(
-                                  "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition",
-                                  selected?.id === s.id
-                                    ? "text-primary-foreground/80 hover:bg-primary-foreground/20"
-                                    : "text-muted-foreground hover:bg-destructive hover:text-destructive-foreground",
-                                )}
-                              >
-                                🗑️
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+              <>
+                <div className="px-1 pb-2 space-y-2">
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔎 Buscar por nome..."
+                    className="h-9"
+                  />
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      onClick={() => setTurmaFilter("__all__")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-full text-xs font-semibold border transition",
+                        turmaFilter === "__all__" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary",
+                      )}
+                    >
+                      Todas
+                    </button>
+                    {allTurmas.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setTurmaFilter(t)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-xs font-semibold border transition",
+                          turmaFilter === t ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary",
+                        )}
+                      >
+                        {t}
+                      </button>
                     ))}
                   </div>
-                );
-              })()
+                  <p className="text-xs text-muted-foreground px-1">
+                    {filteredStudents.length} de {students.length} aluno(s)
+                  </p>
+                </div>
+                {filteredStudents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-4">Nenhum aluno encontrado.</p>
+                ) : (
+                  (() => {
+                    const groups = new Map<string, Student[]>();
+                    for (const s of filteredStudents) {
+                      const key = turmaKeyOf(s);
+                      const arr = groups.get(key) ?? [];
+                      arr.push(s);
+                      groups.set(key, arr);
+                    }
+                    const ordered = [...groups.entries()].sort(([a], [b]) => {
+                      if (a === "Sem turma") return 1;
+                      if (b === "Sem turma") return -1;
+                      return a.localeCompare(b, "pt-BR");
+                    });
+                    return (
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                        {ordered.map(([turma, alunos]) => (
+                          <div key={turma}>
+                            <div className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-river flex items-center justify-between sticky top-0 bg-card">
+                              <span>Turma {turma}</span>
+                              <span className="text-muted-foreground font-semibold">{alunos.length}</span>
+                            </div>
+                            <ul className="space-y-1">
+                              {alunos.map((s) => (
+                                <li key={s.id} className="group relative">
+                                  <button
+                                    onClick={() => selectStudent(s)}
+                                    className={cn(
+                                      "w-full text-left rounded-xl p-3 pr-12 transition-colors",
+                                      selected?.id === s.id
+                                        ? "bg-primary text-primary-foreground"
+                                        : "hover:bg-secondary",
+                                    )}
+                                  >
+                                    <div className="font-bold">{s.first_name}</div>
+                                    <div
+                                      className={cn(
+                                        "text-xs",
+                                        selected?.id === s.id ? "text-primary-foreground/80" : "text-muted-foreground",
+                                      )}
+                                    >
+                                      {[s.grade, s.shift].filter(Boolean).join(" · ") || `Nível ${s.current_level}`}
+                                    </div>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label={`Excluir ${s.first_name}`}
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!confirm(`Excluir o aluno "${s.first_name}" e todo o seu histórico? Esta ação não pode ser desfeita.`)) return;
+                                      try {
+                                        await deleteStudent(s.id);
+                                        setStudents((prev) => prev.filter((x) => x.id !== s.id));
+                                        if (selected?.id === s.id) setSelected(null);
+                                        toast.success("Aluno excluído");
+                                      } catch {
+                                        toast.error("Erro ao excluir aluno");
+                                      }
+                                    }}
+                                    className={cn(
+                                      "absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition",
+                                      selected?.id === s.id
+                                        ? "text-primary-foreground/80 hover:bg-primary-foreground/20"
+                                        : "text-muted-foreground hover:bg-destructive hover:text-destructive-foreground",
+                                    )}
+                                  >
+                                    🗑️
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+              </>
             )}
           </aside>
 
           {/* Detail */}
-          <section>
+          <section id="student-detail" className="scroll-mt-4">
             {!selected ? (
               <div className="bg-card rounded-2xl p-12 border border-border text-center text-muted-foreground">
                 Selecione um aluno para ver o progresso.
@@ -509,7 +580,7 @@ function Card({
   );
 }
 
-function RankingGeral({ students }: { students: Student[] }) {
+function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSelectStudent?: (id: string) => void }) {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<string>("__all__");
@@ -591,7 +662,19 @@ function RankingGeral({ students }: { students: Student[] }) {
                   {filtered.map((r, i) => (
                     <tr key={r.id} className="border-b border-border/50">
                       <td className="py-2 text-lg">{medals[i] ?? <span className="text-muted-foreground font-bold">{i + 1}</span>}</td>
-                      <td className="py-2 font-bold">{r.first_name}</td>
+                      <td className="py-2 font-bold">
+                        {onSelectStudent ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectStudent(r.id)}
+                            className="text-primary hover:underline text-left"
+                          >
+                            {r.first_name}
+                          </button>
+                        ) : (
+                          r.first_name
+                        )}
+                      </td>
                       <td className="py-2 text-muted-foreground">
                         {r.class_name?.trim() ? `${r.grade ?? ""} ${r.class_name}`.trim() : (r.grade ?? "—")}
                       </td>
