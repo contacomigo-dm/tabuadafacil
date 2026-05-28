@@ -145,6 +145,9 @@ function PlayDivisao() {
 
   // Determine which digit column is currently "active" (highlighted in dividend row)
   const activeDigitIndex = currentStep ? currentStep.digitIndex : -1;
+  const activeDigitStart = currentStep
+    ? Math.max(0, currentStep.digitIndex - String(currentStep.chunk).length + 1)
+    : -1;
 
   // Compute "broughtDown" digits visualization for the current chunk:
   // We build a row that shows, under each dividend column, the bring-down chain.
@@ -368,6 +371,7 @@ function PlayDivisao() {
               plan={plan}
               history={history}
               activeDigitIndex={activeDigitIndex}
+              activeDigitStart={activeDigitStart}
               quotientDisplay={quotientDisplay}
               phase={phase}
               currentChunk={currentStep?.chunk ?? 0}
@@ -581,6 +585,7 @@ function DivisionBoard({
   plan,
   history,
   activeDigitIndex,
+  activeDigitStart,
   quotientDisplay,
   phase,
   currentChunk,
@@ -590,6 +595,7 @@ function DivisionBoard({
   plan: DivisionPlan;
   history: StepRecord[];
   activeDigitIndex: number;
+  activeDigitStart: number;
   quotientDisplay: string;
   phase: Phase;
   currentChunk: number;
@@ -632,7 +638,7 @@ function DivisionBoard({
               key={`div-${i}`}
               className={cn(
                 "text-3xl sm:text-4xl font-bold text-center transition-colors",
-                i === activeDigitIndex && phase !== "done"
+                i >= activeDigitStart && i <= activeDigitIndex && phase !== "done"
                   ? "text-river bg-river/15 rounded-md"
                   : "text-foreground",
               )}
