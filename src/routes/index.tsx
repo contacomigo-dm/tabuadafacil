@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({
         content:
           "Pratique a tabuada do 2 ao 9 com níveis, sequências e timer. App gamificado para Educação de Jovens e Adultos.",
       },
-      { property: "og:title", content: "Tabuada Amazônica — App de matemática para EJA" },
+      { property: "og:title", content: "Tabuada Amazônica — App Trilhas da Tabuada" },
       {
         property: "og:description",
         content: "Aprenda a tabuada com níveis e sequências, no estilo Duolingo, com tema amazônico.",
@@ -25,10 +25,10 @@ function Index() {
     <main className="min-h-screen leaf-bg flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-3xl text-center">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/60 backdrop-blur px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-          <span aria-hidden>🌿</span> EJA · Matemática
+          <span aria-hidden>🌿</span> TRILHAS DA TABUADA
         </div>
         <h1 className="mt-4 text-5xl sm:text-6xl font-extrabold tracking-tight text-foreground">
-          Matemática <span className="text-primary">Amazônica</span>
+          Matemática <span className="text-primary">Amazônida</span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
           Faça seu login e escolha entre Tabuada da multiplicação ou Divisão longa.
