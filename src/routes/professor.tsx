@@ -38,6 +38,35 @@ function TeacherPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [turmaFilter, setTurmaFilter] = useState<string>("__all__");
+
+  const selectStudent = (s: Student) => {
+    setSelected(s);
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        document.getElementById("student-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
+
+  const turmaKeyOf = (s: { grade: string | null; class_name: string | null }) =>
+    s.class_name?.trim() ? `${s.grade ?? ""} ${s.class_name}`.trim() : (s.grade ?? "Sem turma");
+
+  const allTurmas = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of students) set.add(turmaKeyOf(s));
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [students]);
+
+  const filteredStudents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return students.filter((s) => {
+      if (turmaFilter !== "__all__" && turmaKeyOf(s) !== turmaFilter) return false;
+      if (q && !s.first_name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [students, search, turmaFilter]);
 
   // Session auth
   useEffect(() => {
