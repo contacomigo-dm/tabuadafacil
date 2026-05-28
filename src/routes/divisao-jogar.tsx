@@ -371,6 +371,7 @@ function PlayDivisao() {
               plan={plan}
               history={history}
               activeDigitIndex={activeDigitIndex}
+              activeDigitStart={activeDigitStart}
               quotientDisplay={quotientDisplay}
               phase={phase}
               currentChunk={currentStep?.chunk ?? 0}
