@@ -685,6 +685,7 @@ function DivisionBoard({
               colW={colW}
               broughtDownDigit={broughtDownDigit}
               broughtDownDigitIndex={broughtDownDigitIndex}
+              isActiveChunk={idx === history.length - 1 && phase !== "done" && nextStep !== undefined}
             />
           );
         })}
