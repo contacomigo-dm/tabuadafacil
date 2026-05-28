@@ -633,20 +633,27 @@ function DivisionBoard({
           className="grid items-center"
           style={{ gridTemplateColumns: `repeat(${cols}, ${colW}px) auto ${colW * 2}px` }}
         >
-          {plan.dividendDigits.map((d, i) => (
-            <div
-              key={`div-${i}`}
-              className={cn(
-                "text-3xl sm:text-4xl font-bold text-center transition-colors",
-                i >= activeDigitStart && i <= activeDigitIndex && phase !== "done"
-                  ? "text-river bg-river/15 rounded-md"
-                  : "text-foreground",
-              )}
-              style={{ width: `${colW}px` }}
-            >
-              {d}
-            </div>
-          ))}
+          {plan.dividendDigits.map((d, i) => {
+            const highlightDividend =
+              history.length === 0 &&
+              i >= activeDigitStart &&
+              i <= activeDigitIndex &&
+              phase !== "done";
+            return (
+              <div
+                key={`div-${i}`}
+                className={cn(
+                  "text-3xl sm:text-4xl font-bold text-center transition-colors",
+                  highlightDividend
+                    ? "text-river bg-river/15 rounded-md"
+                    : "text-foreground",
+                )}
+                style={{ width: `${colW}px` }}
+              >
+                {d}
+              </div>
+            );
+          })}
           {/* Vertical divider "|" of the casinha */}
           <div className="px-2 text-3xl sm:text-4xl font-bold text-foreground">│</div>
           {/* Divisor on top, quotient below it (separated by horizontal bar) */}
