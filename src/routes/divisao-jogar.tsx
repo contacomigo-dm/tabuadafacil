@@ -638,7 +638,7 @@ function DivisionBoard({
               key={`div-${i}`}
               className={cn(
                 "text-3xl sm:text-4xl font-bold text-center transition-colors",
-                i === activeDigitIndex && phase !== "done"
+                i >= activeDigitStart && i <= activeDigitIndex && phase !== "done"
                   ? "text-river bg-river/15 rounded-md"
                   : "text-foreground",
               )}
