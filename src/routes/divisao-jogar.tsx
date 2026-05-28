@@ -714,12 +714,14 @@ function StepRows({
   colW,
   broughtDownDigit,
   broughtDownDigitIndex,
+  isActiveChunk = false,
 }: {
   rec: StepRecord;
   cols: number;
   colW: number;
   broughtDownDigit?: number | null;
   broughtDownDigitIndex?: number;
+  isActiveChunk?: boolean;
 }) {
   const productStr = String(rec.product).padStart(String(rec.chunkBefore).length, "0");
   const remainderStr = String(rec.remainder);
