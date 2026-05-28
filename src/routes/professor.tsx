@@ -580,7 +580,7 @@ function Card({
   );
 }
 
-function RankingGeral({ students }: { students: Student[] }) {
+function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSelectStudent?: (id: string) => void }) {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<string>("__all__");
