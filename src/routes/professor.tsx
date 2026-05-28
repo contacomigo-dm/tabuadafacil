@@ -662,7 +662,19 @@ function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSe
                   {filtered.map((r, i) => (
                     <tr key={r.id} className="border-b border-border/50">
                       <td className="py-2 text-lg">{medals[i] ?? <span className="text-muted-foreground font-bold">{i + 1}</span>}</td>
-                      <td className="py-2 font-bold">{r.first_name}</td>
+                      <td className="py-2 font-bold">
+                        {onSelectStudent ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectStudent(r.id)}
+                            className="text-primary hover:underline text-left"
+                          >
+                            {r.first_name}
+                          </button>
+                        ) : (
+                          r.first_name
+                        )}
+                      </td>
                       <td className="py-2 text-muted-foreground">
                         {r.class_name?.trim() ? `${r.grade ?? ""} ${r.class_name}`.trim() : (r.grade ?? "—")}
                       </td>
