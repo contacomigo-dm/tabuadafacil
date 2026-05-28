@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Tabuada Amazônica — App de matemática para EJA" },
+      { title: "Tabuada Amazônica — App Trilhas da Tabuada" },
       {
         name: "description",
         content:
