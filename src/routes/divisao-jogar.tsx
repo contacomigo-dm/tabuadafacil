@@ -585,6 +585,7 @@ function DivisionBoard({
   plan,
   history,
   activeDigitIndex,
+  activeDigitStart,
   quotientDisplay,
   phase,
   currentChunk,
@@ -594,6 +595,7 @@ function DivisionBoard({
   plan: DivisionPlan;
   history: StepRecord[];
   activeDigitIndex: number;
+  activeDigitStart: number;
   quotientDisplay: string;
   phase: Phase;
   currentChunk: number;
