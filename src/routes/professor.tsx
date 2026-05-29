@@ -133,6 +133,15 @@ function TeacherPage() {
             </div>
             <h1 className="text-3xl font-extrabold">Painel do professor</h1>
             <p className="text-muted-foreground mt-2">Digite a senha para entrar.</p>
+            <div className="mt-3 text-xs text-muted-foreground bg-muted/40 rounded-xl p-3 border border-border">
+              <p className="font-semibold text-foreground">Acesso restrito a professores já cadastrados.</p>
+              <p className="mt-1">
+                Quer ter acesso? Entre em contato com o administrador:{" "}
+                <a href="mailto:contato@mathyraversus.com.br" className="text-primary underline hover:text-primary/80">
+                  contato@mathyraversus.com.br
+                </a>
+              </p>
+            </div>
           </div>
           <Input
             type="password"
