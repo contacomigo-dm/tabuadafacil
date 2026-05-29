@@ -206,6 +206,52 @@ function AlunoEntry() {
     }
   };
 
+  const handleResetLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const s = await findStudentByUsername(usernameInput);
+      if (!s) {
+        toast.error("LOGIN não encontrado");
+        return;
+      }
+      // Confere se o aluno pertence à série/turma/turno informados
+      const sameGrade = (s.grade ?? "") === grade;
+      const sameClass = isEja(grade) ? true : (s.class_name ?? "") === className;
+      const sameShift = isEja(grade) ? true : (s.shift ?? "") === shift;
+      if (!sameGrade || !sameClass || !sameShift) {
+        toast.error("Este LOGIN não pertence a esta turma");
+        return;
+      }
+      setSelected(s);
+      setPassword("");
+      setPassword2("");
+      setStep("reset-set-password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected) return;
+    const err = validatePasswordStrength(password);
+    if (err) return toast.error(err);
+    if (password.toLowerCase() !== password2.toLowerCase()) {
+      return toast.error("As senhas não conferem");
+    }
+    setLoading(true);
+    try {
+      await setStudentPassword(selected, password);
+      toast.success("Senha redefinida com sucesso!");
+      goPlay(selected);
+    } catch {
+      toast.error("Erro ao redefinir senha");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const back = () => {
     if (step === "choose-mode") {
       navigate({ to: "/" });
