@@ -10,6 +10,7 @@ import {
   findStudentByUsername,
   getSchoolCode,
   buildUsernameBase,
+  createVisitor,
   type Student,
 } from "@/lib/api";
 import { toast } from "sonner";
