@@ -165,6 +165,32 @@ export async function setStudentPassword(student: Student, password: string): Pr
   return username;
 }
 
+// Cria um aluno "Visitante" (público em geral) com login e senha próprios.
+// Visitantes não pertencem a uma turma — são marcados com grade='Visitante'.
+export async function createVisitor(
+  fullName: string,
+  password: string,
+): Promise<{ student: Student; username: string }> {
+  const name = fullName.trim().replace(/\s+/g, " ");
+  if (name.length < 2) throw new Error("Nome muito curto");
+  const username = await pickAvailableUsername(name);
+  const hash = await hashPassword(name, password);
+  const { data, error } = await supabase
+    .from("students")
+    .insert({
+      first_name: name,
+      password_hash: hash,
+      username,
+      grade: "Visitante",
+      class_name: null,
+      shift: null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return { student: data as Student, username };
+}
+
 export async function createStudentWithPassword(
   firstName: string,
   password: string,
