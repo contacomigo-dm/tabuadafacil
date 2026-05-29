@@ -60,6 +60,7 @@ function AlunoEntry() {
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [flow, setFlow] = useState<Flow>("first");
 
   const goPlay = (student: Student) => {
     sessionStorage.setItem("studentId", student.id);
