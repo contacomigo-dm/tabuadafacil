@@ -150,13 +150,19 @@ export async function verifyStudentPassword(
   return h === student.password_hash;
 }
 
-export async function setStudentPassword(student: Student, password: string) {
+export async function setStudentPassword(student: Student, password: string): Promise<string> {
   const hash = await hashPassword(student.first_name, password);
+  // Garante login (username) se ainda não tiver
+  const username =
+    student.username && student.username.trim().length > 0
+      ? student.username
+      : await pickAvailableUsername(student.first_name, student.id);
   const { error } = await supabase
     .from("students")
-    .update({ password_hash: hash, updated_at: new Date().toISOString() })
+    .update({ password_hash: hash, username, updated_at: new Date().toISOString() })
     .eq("id", student.id);
   if (error) throw error;
+  return username;
 }
 
 export async function createStudentWithPassword(
