@@ -660,6 +660,69 @@ function AlunoEntry() {
           </div>
         )}
 
+        {step === "reset-login" && (
+          <form onSubmit={handleResetLogin} className="space-y-3">
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Digite o LOGIN que você criou (as iniciais do seu nome). Em seguida,
+              você poderá cadastrar uma nova senha.
+            </p>
+            <Input
+              autoFocus
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              placeholder="ex: jpss"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Verificando..." : "Continuar"}
+            </Button>
+          </form>
+        )}
+
+        {step === "reset-set-password" && selected && (
+          <form onSubmit={handleResetSetPassword} className="space-y-3">
+            <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
+              <div className="font-semibold text-foreground mb-1">Aluno(a):</div>
+              <div className="font-bold text-lg text-primary">{selected.first_name}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                LOGIN:{" "}
+                <span className="font-mono font-bold tracking-wider">
+                  {selected.username ?? "—"}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Crie uma nova senha com pelo menos 6 caracteres, contendo letras e números.
+            </p>
+            <Input
+              type="password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nova senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Input
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              placeholder="Confirme a nova senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Salvando..." : "Salvar nova senha"}
+            </Button>
+          </form>
+        )}
+
         <button
           type="button"
           onClick={back}
