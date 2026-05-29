@@ -185,7 +185,6 @@ function AlunoEntry() {
     setLoading(true);
     try {
       const { student, username } = await createVisitor(name, password);
-      setVisitorStudent(student);
       setSelected(student);
       setAssignedLogin(username);
       setStep("show-login");
