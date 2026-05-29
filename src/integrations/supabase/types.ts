@@ -111,6 +111,7 @@ export type Database = {
           total_correct: number
           total_wrong: number
           updated_at: string
+          username: string | null
         }
         Insert: {
           best_streak?: number
@@ -126,6 +127,7 @@ export type Database = {
           total_correct?: number
           total_wrong?: number
           updated_at?: string
+          username?: string | null
         }
         Update: {
           best_streak?: number
@@ -141,6 +143,7 @@ export type Database = {
           total_correct?: number
           total_wrong?: number
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -148,16 +151,19 @@ export type Database = {
         Row: {
           id: number
           password: string
+          school_code: string
           updated_at: string
         }
         Insert: {
           id?: number
           password?: string
+          school_code?: string
           updated_at?: string
         }
         Update: {
           id?: number
           password?: string
+          school_code?: string
           updated_at?: string
         }
         Relationships: []
