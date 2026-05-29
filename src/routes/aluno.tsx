@@ -7,6 +7,9 @@ import {
   setStudentPassword,
   validatePasswordStrength,
   listStudentsByEnrollment,
+  findStudentByUsername,
+  getSchoolCode,
+  buildUsernameBase,
   type Student,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -21,7 +24,15 @@ export const Route = createFileRoute("/aluno")({
   component: AlunoEntry,
 });
 
-type Step = "enrollment" | "pick-name" | "login" | "set-password";
+type Step =
+  | "choose-mode"
+  | "login-by-username"
+  | "enrollment"
+  | "school-code"
+  | "pick-name"
+  | "login"
+  | "set-password"
+  | "show-login";
 
 const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
@@ -30,14 +41,17 @@ const isEja = (g: string) => g.includes("EJA");
 
 function AlunoEntry() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("enrollment");
+  const [step, setStep] = useState<Step>("choose-mode");
   const [grade, setGrade] = useState("");
   const [className, setClassName] = useState("");
   const [shift, setShift] = useState("");
+  const [schoolCodeInput, setSchoolCodeInput] = useState("");
   const [roster, setRoster] = useState<Student[]>([]);
   const [selected, setSelected] = useState<Student | null>(null);
+  const [usernameInput, setUsernameInput] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [assignedLogin, setAssignedLogin] = useState("");
   const [loading, setLoading] = useState(false);
 
   const goPlay = (student: Student) => {
@@ -52,8 +66,19 @@ function AlunoEntry() {
     e.preventDefault();
     if (!grade) return toast.error("Selecione a série");
     if (!isEja(grade) && (!className || !shift)) return toast.error("Selecione turma e turno");
+    setSchoolCodeInput("");
+    setStep("school-code");
+  };
+
+  const handleSchoolCode = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
+      const expected = await getSchoolCode();
+      if (schoolCodeInput.trim() !== expected) {
+        toast.error("Código da escola inválido");
+        return;
+      }
       const list = await listStudentsByEnrollment(
         grade,
         isEja(grade) ? null : className,
@@ -67,7 +92,7 @@ function AlunoEntry() {
       setStep("pick-name");
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao carregar lista");
+      toast.error("Erro ao validar código");
     } finally {
       setLoading(false);
     }
@@ -77,7 +102,35 @@ function AlunoEntry() {
     setSelected(s);
     setPassword("");
     setPassword2("");
-    setStep(s.password_hash ? "login" : "set-password");
+    if (s.password_hash) {
+      // Já tem senha: aluno deve usar a tela de login com username
+      toast.info("Você já tem cadastro. Entre com seu LOGIN e senha.");
+      setStep("login-by-username");
+      setUsernameInput(s.username ?? "");
+    } else {
+      setStep("set-password");
+    }
+  };
+
+  const handleLoginByUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const s = await findStudentByUsername(usernameInput);
+      if (!s) {
+        toast.error("Login não encontrado");
+        return;
+      }
+      const ok = await verifyStudentPassword(s, password);
+      if (!ok) {
+        toast.error("Senha incorreta");
+        setPassword("");
+        return;
+      }
+      goPlay(s);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -107,9 +160,9 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      await setStudentPassword(selected, password);
-      toast.success("Senha criada! Boa prática 🌱");
-      goPlay(selected);
+      const login = await setStudentPassword(selected, password);
+      setAssignedLogin(login);
+      setStep("show-login");
     } catch {
       toast.error("Erro ao salvar senha");
     } finally {
@@ -118,18 +171,27 @@ function AlunoEntry() {
   };
 
   const back = () => {
-    if (step === "login" || step === "set-password") {
+    if (step === "choose-mode") {
+      navigate({ to: "/" });
+    } else if (step === "login-by-username") {
+      setStep("choose-mode");
+    } else if (step === "enrollment") {
+      setStep("choose-mode");
+    } else if (step === "school-code") {
+      setStep("enrollment");
+    } else if (step === "pick-name") {
+      setStep("school-code");
+    } else if (step === "login" || step === "set-password") {
       setSelected(null);
       setPassword("");
       setPassword2("");
       setStep("pick-name");
-    } else if (step === "pick-name") {
-      setRoster([]);
-      setStep("enrollment");
     } else {
       navigate({ to: "/" });
     }
   };
+
+  const previewLogin = selected ? buildUsernameBase(selected.first_name) : "";
 
   return (
     <main className="min-h-screen leaf-bg flex items-center justify-center px-4 py-8">
@@ -139,18 +201,76 @@ function AlunoEntry() {
             👤
           </div>
           <h1 className="text-3xl font-extrabold text-foreground">
-            {step === "enrollment" && "Bem-vindo(a)!"}
+            {step === "choose-mode" && "Bem-vindo(a)!"}
+            {step === "login-by-username" && "Entrar"}
+            {step === "enrollment" && "Primeiro acesso"}
+            {step === "school-code" && "Código da escola"}
             {step === "pick-name" && "Encontre seu nome"}
             {step === "login" && `Olá, ${selected?.first_name}!`}
             {step === "set-password" && "Crie sua senha"}
+            {step === "show-login" && "Guarde seu LOGIN"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
+            {step === "choose-mode" && "Como você quer entrar?"}
+            {step === "login-by-username" && "Digite seu LOGIN e sua senha."}
             {step === "enrollment" && "Selecione sua série e turma."}
+            {step === "school-code" && "Peça o código ao seu professor."}
             {step === "pick-name" && "Toque no seu nome para continuar."}
             {step === "login" && "Digite sua senha para continuar."}
             {step === "set-password" && "Esta será sua senha para os próximos acessos."}
+            {step === "show-login" && "Anote em algum lugar seguro."}
           </p>
         </div>
+
+        {step === "choose-mode" && (
+          <div className="space-y-3">
+            <Button
+              onClick={() => setStep("login-by-username")}
+              className="btn-pop w-full h-14 text-base font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              🔑 Já tenho login
+            </Button>
+            <Button
+              onClick={() => setStep("enrollment")}
+              variant="outline"
+              className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2"
+            >
+              ✨ Primeiro acesso
+            </Button>
+          </div>
+        )}
+
+        {step === "login-by-username" && (
+          <form onSubmit={handleLoginByUsername} className="space-y-3">
+            <div>
+              <label className="block text-sm font-semibold mb-2">LOGIN</label>
+              <Input
+                autoFocus
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="ex: jpss"
+                className="h-14 text-lg rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Senha</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Sua senha"
+                className="h-14 text-lg rounded-xl"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop mt-2 w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Entrando..." : "Entrar"}
+            </Button>
+          </form>
+        )}
 
         {step === "enrollment" && (
           <form onSubmit={handleEnrollment}>
@@ -226,7 +346,30 @@ function AlunoEntry() {
               disabled={loading}
               className="btn-pop mt-6 w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
             >
-              {loading ? "Carregando..." : "Continuar"}
+              Continuar
+            </Button>
+          </form>
+        )}
+
+        {step === "school-code" && (
+          <form onSubmit={handleSchoolCode} className="space-y-3">
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Para liberar a lista de alunos, digite o código da sua escola.
+            </p>
+            <Input
+              autoFocus
+              inputMode="numeric"
+              value={schoolCodeInput}
+              onChange={(e) => setSchoolCodeInput(e.target.value)}
+              placeholder="Código da escola"
+              className="h-14 text-lg rounded-xl tracking-widest text-center"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Validando..." : "Validar código"}
             </Button>
           </form>
         )}
@@ -282,6 +425,15 @@ function AlunoEntry() {
 
         {step === "set-password" && (
           <form onSubmit={handleSetPassword} className="space-y-3">
+            <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
+              <div className="font-semibold text-foreground mb-1">Seu LOGIN será:</div>
+              <div className="font-mono text-lg font-bold text-primary tracking-wider">
+                {previewLogin || "—"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                (iniciais do seu nome — anote para os próximos acessos)
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
               Não diferenciamos maiúsculas de minúsculas.
@@ -306,9 +458,31 @@ function AlunoEntry() {
               disabled={loading}
               className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
             >
-              {loading ? "Salvando..." : "Salvar e jogar"}
+              {loading ? "Salvando..." : "Salvar e continuar"}
             </Button>
           </form>
+        )}
+
+        {step === "show-login" && selected && (
+          <div className="space-y-4">
+            <div className="bg-primary/10 border-2 border-primary/40 rounded-2xl p-5 text-center">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                Seu LOGIN
+              </div>
+              <div className="font-mono text-3xl font-extrabold text-primary tracking-widest">
+                {assignedLogin}
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                ⚠️ Anote! Você vai precisar dele junto com a senha nas próximas vezes.
+              </div>
+            </div>
+            <Button
+              onClick={() => goPlay(selected)}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              Anotei, vamos jogar! 🚀
+            </Button>
+          </div>
         )}
 
         <button
