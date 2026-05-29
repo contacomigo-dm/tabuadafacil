@@ -34,7 +34,11 @@ type Step =
   | "login"
   | "set-password"
   | "show-login"
-  | "visitor-register";
+  | "visitor-register"
+  | "reset-login"
+  | "reset-set-password";
+
+type Flow = "first" | "reset";
 
 const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
@@ -56,6 +60,7 @@ function AlunoEntry() {
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [flow, setFlow] = useState<Flow>("first");
 
   const goPlay = (student: Student) => {
     sessionStorage.setItem("studentId", student.id);
@@ -87,6 +92,11 @@ function AlunoEntry() {
         isEja(grade) ? null : className,
         isEja(grade) ? null : shift,
       );
+      if (flow === "reset") {
+        setUsernameInput("");
+        setStep("reset-login");
+        return;
+      }
       if (list.length === 0) {
         toast.error("Nenhum aluno cadastrado nesta turma. Peça ao professor para te cadastrar.");
         return;
@@ -196,6 +206,52 @@ function AlunoEntry() {
     }
   };
 
+  const handleResetLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const s = await findStudentByUsername(usernameInput);
+      if (!s) {
+        toast.error("LOGIN não encontrado");
+        return;
+      }
+      // Confere se o aluno pertence à série/turma/turno informados
+      const sameGrade = (s.grade ?? "") === grade;
+      const sameClass = isEja(grade) ? true : (s.class_name ?? "") === className;
+      const sameShift = isEja(grade) ? true : (s.shift ?? "") === shift;
+      if (!sameGrade || !sameClass || !sameShift) {
+        toast.error("Este LOGIN não pertence a esta turma");
+        return;
+      }
+      setSelected(s);
+      setPassword("");
+      setPassword2("");
+      setStep("reset-set-password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected) return;
+    const err = validatePasswordStrength(password);
+    if (err) return toast.error(err);
+    if (password.toLowerCase() !== password2.toLowerCase()) {
+      return toast.error("As senhas não conferem");
+    }
+    setLoading(true);
+    try {
+      await setStudentPassword(selected, password);
+      toast.success("Senha redefinida com sucesso!");
+      goPlay(selected);
+    } catch {
+      toast.error("Erro ao redefinir senha");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const back = () => {
     if (step === "choose-mode") {
       navigate({ to: "/" });
@@ -217,6 +273,13 @@ function AlunoEntry() {
       setPassword2("");
       setVisitorName("");
       setStep("choose-mode");
+    } else if (step === "reset-login") {
+      setStep("school-code");
+    } else if (step === "reset-set-password") {
+      setSelected(null);
+      setPassword("");
+      setPassword2("");
+      setStep("reset-login");
     } else {
       navigate({ to: "/" });
     }
@@ -234,13 +297,15 @@ function AlunoEntry() {
           <h1 className="text-3xl font-extrabold text-foreground">
             {step === "choose-mode" && "Bem-vindo(a)!"}
             {step === "login-by-username" && "Entrar"}
-            {step === "enrollment" && "Primeiro acesso"}
+            {step === "enrollment" && (flow === "reset" ? "Redefinir senha" : "Primeiro acesso")}
             {step === "school-code" && "Código da escola"}
             {step === "pick-name" && "Encontre seu nome"}
             {step === "login" && `Olá, ${selected?.first_name}!`}
             {step === "set-password" && "Crie sua senha"}
             {step === "show-login" && "Guarde seu LOGIN"}
             {step === "visitor-register" && "Cadastro de visitante"}
+            {step === "reset-login" && "Confirme seu LOGIN"}
+            {step === "reset-set-password" && `Olá, ${selected?.first_name}!`}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {step === "choose-mode" && "Como você quer entrar?"}
@@ -252,6 +317,8 @@ function AlunoEntry() {
             {step === "set-password" && "Esta será sua senha para os próximos acessos."}
             {step === "show-login" && "Anote em algum lugar seguro."}
             {step === "visitor-register" && "Treine livremente — seu desempenho fica salvo."}
+            {step === "reset-login" && "Digite o LOGIN (iniciais do seu nome) que você criou."}
+            {step === "reset-set-password" && "Agora cadastre sua nova senha."}
           </p>
         </div>
 
@@ -264,11 +331,27 @@ function AlunoEntry() {
               🔑 Já tenho login
             </Button>
             <Button
-              onClick={() => setStep("enrollment")}
+              onClick={() => {
+                setFlow("first");
+                setStep("enrollment");
+              }}
               variant="outline"
               className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2"
             >
               ✨ Primeiro acesso (aluno da escola)
+            </Button>
+            <Button
+              onClick={() => {
+                setFlow("reset");
+                setGrade("");
+                setClassName("");
+                setShift("");
+                setStep("enrollment");
+              }}
+              variant="outline"
+              className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2"
+            >
+              🔄 Esqueci minha senha
             </Button>
             <Button
               onClick={() => {
@@ -575,6 +658,69 @@ function AlunoEntry() {
               Anotei, vamos jogar! 🚀
             </Button>
           </div>
+        )}
+
+        {step === "reset-login" && (
+          <form onSubmit={handleResetLogin} className="space-y-3">
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Digite o LOGIN que você criou (as iniciais do seu nome). Em seguida,
+              você poderá cadastrar uma nova senha.
+            </p>
+            <Input
+              autoFocus
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              placeholder="ex: jpss"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Verificando..." : "Continuar"}
+            </Button>
+          </form>
+        )}
+
+        {step === "reset-set-password" && selected && (
+          <form onSubmit={handleResetSetPassword} className="space-y-3">
+            <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
+              <div className="font-semibold text-foreground mb-1">Aluno(a):</div>
+              <div className="font-bold text-lg text-primary">{selected.first_name}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                LOGIN:{" "}
+                <span className="font-mono font-bold tracking-wider">
+                  {selected.username ?? "—"}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Crie uma nova senha com pelo menos 6 caracteres, contendo letras e números.
+            </p>
+            <Input
+              type="password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nova senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Input
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              placeholder="Confirme a nova senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Salvando..." : "Salvar nova senha"}
+            </Button>
+          </form>
         )}
 
         <button
