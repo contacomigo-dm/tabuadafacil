@@ -212,6 +212,11 @@ function AlunoEntry() {
       setPassword("");
       setPassword2("");
       setStep("pick-name");
+    } else if (step === "visitor-register") {
+      setPassword("");
+      setPassword2("");
+      setVisitorName("");
+      setStep("choose-mode");
     } else {
       navigate({ to: "/" });
     }
