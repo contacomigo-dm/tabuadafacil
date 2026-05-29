@@ -297,13 +297,15 @@ function AlunoEntry() {
           <h1 className="text-3xl font-extrabold text-foreground">
             {step === "choose-mode" && "Bem-vindo(a)!"}
             {step === "login-by-username" && "Entrar"}
-            {step === "enrollment" && "Primeiro acesso"}
+            {step === "enrollment" && (flow === "reset" ? "Redefinir senha" : "Primeiro acesso")}
             {step === "school-code" && "Código da escola"}
             {step === "pick-name" && "Encontre seu nome"}
             {step === "login" && `Olá, ${selected?.first_name}!`}
             {step === "set-password" && "Crie sua senha"}
             {step === "show-login" && "Guarde seu LOGIN"}
             {step === "visitor-register" && "Cadastro de visitante"}
+            {step === "reset-login" && "Confirme seu LOGIN"}
+            {step === "reset-set-password" && `Olá, ${selected?.first_name}!`}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {step === "choose-mode" && "Como você quer entrar?"}
@@ -315,6 +317,8 @@ function AlunoEntry() {
             {step === "set-password" && "Esta será sua senha para os próximos acessos."}
             {step === "show-login" && "Anote em algum lugar seguro."}
             {step === "visitor-register" && "Treine livremente — seu desempenho fica salvo."}
+            {step === "reset-login" && "Digite o LOGIN (iniciais do seu nome) que você criou."}
+            {step === "reset-set-password" && "Agora cadastre sua nova senha."}
           </p>
         </div>
 
