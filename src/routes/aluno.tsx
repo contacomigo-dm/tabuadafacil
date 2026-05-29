@@ -33,7 +33,8 @@ type Step =
   | "pick-name"
   | "login"
   | "set-password"
-  | "show-login";
+  | "show-login"
+  | "visitor-register";
 
 const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
