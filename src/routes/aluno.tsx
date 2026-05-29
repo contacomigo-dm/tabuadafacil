@@ -55,7 +55,6 @@ function AlunoEntry() {
   const [password2, setPassword2] = useState("");
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
-  const [visitorStudent, setVisitorStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(false);
 
   const goPlay = (student: Student) => {
