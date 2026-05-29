@@ -34,7 +34,11 @@ type Step =
   | "login"
   | "set-password"
   | "show-login"
-  | "visitor-register";
+  | "visitor-register"
+  | "reset-login"
+  | "reset-set-password";
+
+type Flow = "first" | "reset";
 
 const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
