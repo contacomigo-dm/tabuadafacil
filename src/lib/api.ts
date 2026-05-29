@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Student {
   id: string;
   first_name: string;
+  username: string | null;
   current_level: number;
   best_streak: number;
   current_streak: number;
@@ -15,6 +16,52 @@ export interface Student {
   password_hash: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Gera login a partir do nome completo: "joão pedro sousa da silva" → "jpss".
+const STOP_WORDS = new Set(["da", "de", "di", "do", "du", "das", "dos", "e"]);
+export function buildUsernameBase(fullName: string): string {
+  return fullName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w && !STOP_WORDS.has(w))
+    .map((w) => w[0])
+    .join("");
+}
+
+// Encontra um username livre, anexando 2,3,4... se necessário.
+export async function pickAvailableUsername(fullName: string, excludeId?: string): Promise<string> {
+  const base = buildUsernameBase(fullName) || "aluno";
+  for (let i = 1; i < 999; i++) {
+    const candidate = i === 1 ? base : `${base}${i}`;
+    let q = supabase.from("students").select("id").ilike("username", candidate);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q.maybeSingle();
+    if (!data) return candidate;
+  }
+  return `${base}${Date.now()}`;
+}
+
+export async function findStudentByUsername(username: string): Promise<Student | null> {
+  const u = username.trim();
+  if (!u) return null;
+  const { data } = await supabase
+    .from("students")
+    .select("*")
+    .ilike("username", u)
+    .maybeSingle();
+  return (data as Student) ?? null;
+}
+
+export async function getSchoolCode(): Promise<string> {
+  const { data } = await supabase
+    .from("teacher_settings")
+    .select("school_code")
+    .eq("id", 1)
+    .single();
+  return (data?.school_code as string) ?? "15059260";
 }
 
 // Hash com salt baseado no nome (suficiente para um app escolar; senhas
