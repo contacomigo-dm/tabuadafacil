@@ -10,6 +10,7 @@ import {
   findStudentByUsername,
   getSchoolCode,
   buildUsernameBase,
+  createVisitor,
   type Student,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -32,7 +33,8 @@ type Step =
   | "pick-name"
   | "login"
   | "set-password"
-  | "show-login";
+  | "show-login"
+  | "visitor-register";
 
 const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
@@ -52,6 +54,7 @@ function AlunoEntry() {
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [assignedLogin, setAssignedLogin] = useState("");
+  const [visitorName, setVisitorName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const goPlay = (student: Student) => {
@@ -170,6 +173,29 @@ function AlunoEntry() {
     }
   };
 
+  const handleVisitorRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = visitorName.trim().replace(/\s+/g, " ");
+    if (name.length < 2) return toast.error("Digite seu nome completo");
+    const err = validatePasswordStrength(password);
+    if (err) return toast.error(err);
+    if (password.toLowerCase() !== password2.toLowerCase()) {
+      return toast.error("As senhas não conferem");
+    }
+    setLoading(true);
+    try {
+      const { student, username } = await createVisitor(name, password);
+      setSelected(student);
+      setAssignedLogin(username);
+      setStep("show-login");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao cadastrar visitante");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const back = () => {
     if (step === "choose-mode") {
       navigate({ to: "/" });
@@ -186,6 +212,11 @@ function AlunoEntry() {
       setPassword("");
       setPassword2("");
       setStep("pick-name");
+    } else if (step === "visitor-register") {
+      setPassword("");
+      setPassword2("");
+      setVisitorName("");
+      setStep("choose-mode");
     } else {
       navigate({ to: "/" });
     }
@@ -209,6 +240,7 @@ function AlunoEntry() {
             {step === "login" && `Olá, ${selected?.first_name}!`}
             {step === "set-password" && "Crie sua senha"}
             {step === "show-login" && "Guarde seu LOGIN"}
+            {step === "visitor-register" && "Cadastro de visitante"}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {step === "choose-mode" && "Como você quer entrar?"}
@@ -219,6 +251,7 @@ function AlunoEntry() {
             {step === "login" && "Digite sua senha para continuar."}
             {step === "set-password" && "Esta será sua senha para os próximos acessos."}
             {step === "show-login" && "Anote em algum lugar seguro."}
+            {step === "visitor-register" && "Treine livremente — seu desempenho fica salvo."}
           </p>
         </div>
 
@@ -235,9 +268,68 @@ function AlunoEntry() {
               variant="outline"
               className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2"
             >
-              ✨ Primeiro acesso
+              ✨ Primeiro acesso (aluno da escola)
+            </Button>
+            <Button
+              onClick={() => {
+                setVisitorName("");
+                setPassword("");
+                setPassword2("");
+                setStep("visitor-register");
+              }}
+              variant="outline"
+              className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2 border-accent/60 hover:border-accent"
+            >
+              🌎 Sou visitante (público em geral)
             </Button>
           </div>
+        )}
+
+        {step === "visitor-register" && (
+          <form onSubmit={handleVisitorRegister} className="space-y-3">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Nome completo</label>
+              <Input
+                autoFocus
+                value={visitorName}
+                onChange={(e) => setVisitorName(e.target.value)}
+                placeholder="ex: maria silva souza"
+                className="h-14 text-lg rounded-xl"
+              />
+              {visitorName.trim().length >= 2 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Seu LOGIN será:{" "}
+                  <span className="font-mono font-bold text-primary tracking-wider">
+                    {buildUsernameBase(visitorName) || "—"}
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
+              Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
+            </p>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nova senha (letras + números)"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Input
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              placeholder="Confirme a senha"
+              className="h-14 text-lg rounded-xl"
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? "Cadastrando..." : "Cadastrar e começar"}
+            </Button>
+          </form>
         )}
 
         {step === "login-by-username" && (
