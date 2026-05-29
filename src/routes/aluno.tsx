@@ -92,6 +92,11 @@ function AlunoEntry() {
         isEja(grade) ? null : className,
         isEja(grade) ? null : shift,
       );
+      if (flow === "reset") {
+        setUsernameInput("");
+        setStep("reset-login");
+        return;
+      }
       if (list.length === 0) {
         toast.error("Nenhum aluno cadastrado nesta turma. Peça ao professor para te cadastrar.");
         return;
