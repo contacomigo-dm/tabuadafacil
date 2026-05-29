@@ -386,7 +386,7 @@ function StudentDetail({
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <Card label="Acertos (geral)" value={student.total_correct} color="text-success" />
-          <Card label="Erros (geral)" value={student.total_wrong} color="text-destructive" />
+          <Card label="Erros (geral)" value={student.total_wrong} color="text-warning" />
         </div>
       </div>
 
@@ -463,7 +463,7 @@ function ActivityPanel({
         <h3 className="text-lg font-bold mb-3">Resumo da {label}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card label="Acertos" value={data?.totalCorrect ?? 0} color="text-success" />
-          <Card label="Erros" value={data?.totalWrong ?? 0} color="text-destructive" />
+          <Card label="Erros" value={data?.totalWrong ?? 0} color="text-warning" />
           <Card label="% acerto" value={`${pct}%`} />
           <Card label="Sessões" value={data?.sessions.length ?? 0} />
         </div>
@@ -483,8 +483,8 @@ function ActivityPanel({
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} width={36} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="acertos" name="Acertos" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="erros" name="Erros" fill="hsl(var(--destructive))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="acertos" name="Acertos" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="erros" name="Erros" fill="hsl(var(--warning))" radius={[6, 6, 0, 0]} />
                 <Line type="monotone" dataKey="contas" name="Contas feitas" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -505,7 +505,7 @@ function ActivityPanel({
                 <li key={t.table_num} className="flex items-center gap-3">
                   <div className="w-12 font-bold">{tableLabelPrefix}{t.table_num}</div>
                   <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-destructive" style={{ width: `${errPct}%` }} />
+                    <div className="h-full bg-warning" style={{ width: `${errPct}%` }} />
                   </div>
                   <div className="text-sm tabular-nums w-32 text-right text-muted-foreground">
                     {t.wrong} erro(s) / {tot}
@@ -545,7 +545,7 @@ function ActivityPanel({
                       })}
                     </td>
                     <td className="py-2 text-success font-semibold">{s.correct_count}</td>
-                    <td className="py-2 text-destructive font-semibold">{s.wrong_count}</td>
+                    <td className="py-2 text-warning font-semibold">{s.wrong_count}</td>
                     <td className="py-2">
                       {s.level_at_start}
                       {s.level_at_end !== s.level_at_start && ` → ${s.level_at_end}`}
@@ -679,7 +679,7 @@ function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSe
                         {r.class_name?.trim() ? `${r.grade ?? ""} ${r.class_name}`.trim() : (r.grade ?? "—")}
                       </td>
                       <td className="py-2 text-right text-success font-semibold">{r.total_correct}</td>
-                      <td className="py-2 text-right text-destructive font-semibold">{r.total_wrong}</td>
+                      <td className="py-2 text-right text-warning font-semibold">{r.total_wrong}</td>
                       <td className="py-2 text-right tabular-nums">{r.accuracy}%</td>
                     </tr>
                   ))}

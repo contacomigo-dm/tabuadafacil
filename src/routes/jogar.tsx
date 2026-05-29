@@ -427,7 +427,7 @@ function PlayPage() {
 
         <div className="mt-4 grid grid-cols-3 gap-3 text-center">
           <Stat label="Acertos" value={correctCount} color="text-success" />
-          <Stat label="Erros" value={wrongCount} color="text-destructive" />
+          <Stat label="Erros" value={wrongCount} color="text-warning" />
           <Stat label="Melhor" value={bestStreak} color="text-accent-foreground" />
         </div>
       </div>
