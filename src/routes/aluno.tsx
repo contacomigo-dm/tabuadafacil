@@ -174,6 +174,30 @@ function AlunoEntry() {
     }
   };
 
+  const handleVisitorRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = visitorName.trim().replace(/\s+/g, " ");
+    if (name.length < 2) return toast.error("Digite seu nome completo");
+    const err = validatePasswordStrength(password);
+    if (err) return toast.error(err);
+    if (password.toLowerCase() !== password2.toLowerCase()) {
+      return toast.error("As senhas não conferem");
+    }
+    setLoading(true);
+    try {
+      const { student, username } = await createVisitor(name, password);
+      setVisitorStudent(student);
+      setSelected(student);
+      setAssignedLogin(username);
+      setStep("show-login");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao cadastrar visitante");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const back = () => {
     if (step === "choose-mode") {
       navigate({ to: "/" });
