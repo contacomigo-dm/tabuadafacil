@@ -291,13 +291,12 @@ function AlunoEntry() {
       setPassword2("");
       setVisitorName("");
       setStep("choose-mode");
-    } else if (step === "reset-login") {
-      setStep("school-code");
     } else if (step === "reset-set-password") {
       setSelected(null);
       setPassword("");
       setPassword2("");
-      setStep("reset-login");
+      setStep("pick-name");
+
     } else {
       navigate({ to: "/" });
     }
