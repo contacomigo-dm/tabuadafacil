@@ -256,15 +256,19 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      await setStudentPassword(selected, password);
+      const login = await setStudentPassword(selected, password);
       toast.success("Senha redefinida com sucesso!");
-      goPlay(selected);
+      // Sempre mostra o LOGIN para o aluno anotar (especialmente útil para
+      // alunos legados que ainda não tinham um LOGIN gerado).
+      setAssignedLogin(login);
+      setStep("show-login");
     } catch {
       toast.error("Erro ao redefinir senha");
     } finally {
       setLoading(false);
     }
   };
+
 
   const back = () => {
     if (step === "choose-mode") {
