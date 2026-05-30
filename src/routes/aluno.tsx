@@ -92,11 +92,6 @@ function AlunoEntry() {
         isEja(grade) ? null : className,
         isEja(grade) ? null : shift,
       );
-      if (flow === "reset") {
-        setUsernameInput("");
-        setStep("reset-login");
-        return;
-      }
       if (list.length === 0) {
         toast.error("Nenhum aluno cadastrado nesta turma. Peça ao professor para te cadastrar.");
         return;
@@ -115,11 +110,22 @@ function AlunoEntry() {
     setSelected(s);
     setPassword("");
     setPassword2("");
+    if (flow === "reset") {
+      // No fluxo de redefinição, vai direto para cadastrar nova senha
+      setStep("reset-set-password");
+      return;
+    }
     if (s.password_hash) {
-      // Já tem senha: aluno deve usar a tela de login com username
-      toast.info("Você já tem cadastro. Entre com seu LOGIN e senha.");
-      setStep("login-by-username");
-      setUsernameInput(s.username ?? "");
+      if (s.username && s.username.trim().length > 0) {
+        // Tem senha E login → usa tela de LOGIN+senha
+        toast.info("Você já tem cadastro. Entre com seu LOGIN e senha.");
+        setStep("login-by-username");
+        setUsernameInput(s.username);
+      } else {
+        // Caso legado: tem senha mas sem LOGIN. Entra só com senha;
+        // o LOGIN será gerado e mostrado após a verificação.
+        setStep("login");
+      }
     } else {
       setStep("set-password");
     }
@@ -157,11 +163,19 @@ function AlunoEntry() {
         setPassword("");
         return;
       }
+      // Se aluno legado sem LOGIN, gera um agora e mostra na próxima tela
+      if (!selected.username || selected.username.trim().length === 0) {
+        const login = await setStudentPassword(selected, password);
+        setAssignedLogin(login);
+        setStep("show-login");
+        return;
+      }
       goPlay(selected);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,15 +256,19 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      await setStudentPassword(selected, password);
+      const login = await setStudentPassword(selected, password);
       toast.success("Senha redefinida com sucesso!");
-      goPlay(selected);
+      // Sempre mostra o LOGIN para o aluno anotar (especialmente útil para
+      // alunos legados que ainda não tinham um LOGIN gerado).
+      setAssignedLogin(login);
+      setStep("show-login");
     } catch {
       toast.error("Erro ao redefinir senha");
     } finally {
       setLoading(false);
     }
   };
+
 
   const back = () => {
     if (step === "choose-mode") {
@@ -273,13 +291,12 @@ function AlunoEntry() {
       setPassword2("");
       setVisitorName("");
       setStep("choose-mode");
-    } else if (step === "reset-login") {
-      setStep("school-code");
     } else if (step === "reset-set-password") {
       setSelected(null);
       setPassword("");
       setPassword2("");
-      setStep("reset-login");
+      setStep("pick-name");
+
     } else {
       navigate({ to: "/" });
     }
