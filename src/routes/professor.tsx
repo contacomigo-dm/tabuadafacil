@@ -298,7 +298,7 @@ function TeacherPage() {
                                   <button
                                     onClick={() => selectStudent(s)}
                                     className={cn(
-                                      "w-full text-left rounded-xl p-3 pr-12 transition-colors",
+                                      "w-full text-left rounded-xl p-3 pr-24 transition-colors",
                                       selected?.id === s.id
                                         ? "bg-primary text-primary-foreground"
                                         : "hover:bg-secondary",
@@ -313,6 +313,36 @@ function TeacherPage() {
                                     >
                                       {[s.grade, s.shift].filter(Boolean).join(" · ") || `Nível ${s.current_level}`}
                                     </div>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label={`Resetar senha de ${s.first_name}`}
+                                    title="Resetar senha"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!confirm(`Resetar a senha de "${s.first_name}"? O aluno precisará cadastrar uma nova senha (e um novo LOGIN com o ano de nascimento) no próximo acesso.`)) return;
+                                      try {
+                                        await clearStudentPassword(s.id);
+                                        setStudents((prev) =>
+                                          prev.map((x) =>
+                                            x.id === s.id
+                                              ? { ...x, password_hash: null, username: null, birth_year: null }
+                                              : x,
+                                          ),
+                                        );
+                                        toast.success("Senha resetada");
+                                      } catch {
+                                        toast.error("Erro ao resetar senha");
+                                      }
+                                    }}
+                                    className={cn(
+                                      "absolute right-12 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition",
+                                      selected?.id === s.id
+                                        ? "text-primary-foreground/80 hover:bg-primary-foreground/20"
+                                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                                    )}
+                                  >
+                                    🔄
                                   </button>
                                   <button
                                     type="button"
