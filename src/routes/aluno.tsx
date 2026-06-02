@@ -112,20 +112,17 @@ function AlunoEntry() {
     setSelected(s);
     setPassword("");
     setPassword2("");
+    setBirthYear(s.birth_year ? String(s.birth_year) : "");
     if (flow === "reset") {
-      // No fluxo de redefinição, vai direto para cadastrar nova senha
       setStep("reset-set-password");
       return;
     }
     if (s.password_hash) {
       if (s.username && s.username.trim().length > 0) {
-        // Tem senha E login → usa tela de LOGIN+senha
         toast.info("Você já tem cadastro. Entre com seu LOGIN e senha.");
         setStep("login-by-username");
         setUsernameInput(s.username);
       } else {
-        // Caso legado: tem senha mas sem LOGIN. Entra só com senha;
-        // o LOGIN será gerado e mostrado após a verificação.
         setStep("login");
       }
     } else {
