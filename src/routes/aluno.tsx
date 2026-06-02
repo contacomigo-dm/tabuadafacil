@@ -6,6 +6,7 @@ import {
   verifyStudentPassword,
   setStudentPassword,
   validatePasswordStrength,
+  validateBirthYear,
   listStudentsByEnrollment,
   findStudentByUsername,
   getSchoolCode,
@@ -59,6 +60,7 @@ function AlunoEntry() {
   const [password2, setPassword2] = useState("");
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
+  const [birthYear, setBirthYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [flow, setFlow] = useState<Flow>("first");
 
@@ -110,20 +112,17 @@ function AlunoEntry() {
     setSelected(s);
     setPassword("");
     setPassword2("");
+    setBirthYear(s.birth_year ? String(s.birth_year) : "");
     if (flow === "reset") {
-      // No fluxo de redefinição, vai direto para cadastrar nova senha
       setStep("reset-set-password");
       return;
     }
     if (s.password_hash) {
       if (s.username && s.username.trim().length > 0) {
-        // Tem senha E login → usa tela de LOGIN+senha
         toast.info("Você já tem cadastro. Entre com seu LOGIN e senha.");
         setStep("login-by-username");
         setUsernameInput(s.username);
       } else {
-        // Caso legado: tem senha mas sem LOGIN. Entra só com senha;
-        // o LOGIN será gerado e mostrado após a verificação.
         setStep("login");
       }
     } else {
@@ -163,11 +162,9 @@ function AlunoEntry() {
         setPassword("");
         return;
       }
-      // Se aluno legado sem LOGIN, gera um agora e mostra na próxima tela
+      // Se aluno legado sem LOGIN, exige ano de nascimento para gerar o LOGIN
       if (!selected.username || selected.username.trim().length === 0) {
-        const login = await setStudentPassword(selected, password);
-        setAssignedLogin(login);
-        setStep("show-login");
+        setStep("set-password");
         return;
       }
       goPlay(selected);
@@ -180,6 +177,9 @@ function AlunoEntry() {
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -187,7 +187,7 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password);
+      const login = await setStudentPassword(selected, password, yr);
       setAssignedLogin(login);
       setStep("show-login");
     } catch {
@@ -201,6 +201,9 @@ function AlunoEntry() {
     e.preventDefault();
     const name = visitorName.trim().replace(/\s+/g, " ");
     if (name.length < 2) return toast.error("Digite seu nome completo");
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -208,7 +211,7 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const { student, username } = await createVisitor(name, password);
+      const { student, username } = await createVisitor(name, password, yr);
       setSelected(student);
       setAssignedLogin(username);
       setStep("show-login");
@@ -229,7 +232,6 @@ function AlunoEntry() {
         toast.error("LOGIN não encontrado");
         return;
       }
-      // Confere se o aluno pertence à série/turma/turno informados
       const sameGrade = (s.grade ?? "") === grade;
       const sameClass = isEja(grade) ? true : (s.class_name ?? "") === className;
       const sameShift = isEja(grade) ? true : (s.shift ?? "") === shift;
@@ -240,6 +242,7 @@ function AlunoEntry() {
       setSelected(s);
       setPassword("");
       setPassword2("");
+      setBirthYear(s.birth_year ? String(s.birth_year) : "");
       setStep("reset-set-password");
     } finally {
       setLoading(false);
@@ -249,6 +252,9 @@ function AlunoEntry() {
   const handleResetSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -256,10 +262,8 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password);
+      const login = await setStudentPassword(selected, password, yr);
       toast.success("Senha redefinida com sucesso!");
-      // Sempre mostra o LOGIN para o aluno anotar (especialmente útil para
-      // alunos legados que ainda não tinham um LOGIN gerado).
       setAssignedLogin(login);
       setStep("show-login");
     } catch {
@@ -268,6 +272,7 @@ function AlunoEntry() {
       setLoading(false);
     }
   };
+
 
 
   const back = () => {
@@ -302,7 +307,12 @@ function AlunoEntry() {
     }
   };
 
-  const previewLogin = selected ? buildUsernameBase(selected.first_name) : "";
+  const previewLogin = selected
+    ? `${buildUsernameBase(selected.first_name)}${birthYear.trim().length === 4 ? birthYear.trim() : ""}`
+    : "";
+  const visitorPreview = visitorName.trim().length >= 2
+    ? `${buildUsernameBase(visitorName)}${birthYear.trim().length === 4 ? birthYear.trim() : ""}`
+    : "";
 
   return (
     <main className="min-h-screen leaf-bg flex items-center justify-center px-4 py-8">
@@ -396,11 +406,22 @@ function AlunoEntry() {
                 placeholder="ex: maria silva souza"
                 className="h-14 text-lg rounded-xl"
               />
-              {visitorName.trim().length >= 2 && (
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Ano de nascimento</label>
+              <Input
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
+              {visitorPreview && (
                 <div className="text-xs text-muted-foreground mt-1">
                   Seu LOGIN será:{" "}
                   <span className="font-mono font-bold text-primary tracking-wider">
-                    {buildUsernameBase(visitorName) || "—"}
+                    {visitorPreview}
                   </span>
                 </div>
               )}
@@ -623,8 +644,20 @@ function AlunoEntry() {
                 {previewLogin || "—"}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                (iniciais do seu nome — anote para os próximos acessos)
+                (iniciais do seu nome + ano de nascimento — anote para os próximos acessos)
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Ano de nascimento</label>
+              <Input
+                autoFocus
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
             </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
@@ -632,7 +665,6 @@ function AlunoEntry() {
             </p>
             <Input
               type="password"
-              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nova senha (letras + números)"
@@ -706,18 +738,32 @@ function AlunoEntry() {
               <div className="font-semibold text-foreground mb-1">Aluno(a):</div>
               <div className="font-bold text-lg text-primary">{selected.first_name}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                LOGIN:{" "}
-                <span className="font-mono font-bold tracking-wider">
-                  {selected.username ?? "—"}
+                Novo LOGIN:{" "}
+                <span className="font-mono font-bold tracking-wider text-primary">
+                  {previewLogin || "—"}
                 </span>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Ano de nascimento</label>
+              <Input
+                autoFocus
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Confirme seu ano de nascimento — ele faz parte do seu novo LOGIN.
+              </p>
             </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma nova senha com pelo menos 6 caracteres, contendo letras e números.
             </p>
             <Input
               type="password"
-              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nova senha"
