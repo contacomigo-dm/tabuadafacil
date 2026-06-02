@@ -162,11 +162,9 @@ function AlunoEntry() {
         setPassword("");
         return;
       }
-      // Se aluno legado sem LOGIN, gera um agora e mostra na próxima tela
+      // Se aluno legado sem LOGIN, exige ano de nascimento para gerar o LOGIN
       if (!selected.username || selected.username.trim().length === 0) {
-        const login = await setStudentPassword(selected, password);
-        setAssignedLogin(login);
-        setStep("show-login");
+        setStep("set-password");
         return;
       }
       goPlay(selected);
@@ -179,6 +177,9 @@ function AlunoEntry() {
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -186,7 +187,7 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password);
+      const login = await setStudentPassword(selected, password, yr);
       setAssignedLogin(login);
       setStep("show-login");
     } catch {
@@ -200,6 +201,9 @@ function AlunoEntry() {
     e.preventDefault();
     const name = visitorName.trim().replace(/\s+/g, " ");
     if (name.length < 2) return toast.error("Digite seu nome completo");
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -207,7 +211,7 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const { student, username } = await createVisitor(name, password);
+      const { student, username } = await createVisitor(name, password, yr);
       setSelected(student);
       setAssignedLogin(username);
       setStep("show-login");
@@ -228,7 +232,6 @@ function AlunoEntry() {
         toast.error("LOGIN não encontrado");
         return;
       }
-      // Confere se o aluno pertence à série/turma/turno informados
       const sameGrade = (s.grade ?? "") === grade;
       const sameClass = isEja(grade) ? true : (s.class_name ?? "") === className;
       const sameShift = isEja(grade) ? true : (s.shift ?? "") === shift;
@@ -239,6 +242,7 @@ function AlunoEntry() {
       setSelected(s);
       setPassword("");
       setPassword2("");
+      setBirthYear(s.birth_year ? String(s.birth_year) : "");
       setStep("reset-set-password");
     } finally {
       setLoading(false);
@@ -248,6 +252,9 @@ function AlunoEntry() {
   const handleResetSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -255,10 +262,8 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password);
+      const login = await setStudentPassword(selected, password, yr);
       toast.success("Senha redefinida com sucesso!");
-      // Sempre mostra o LOGIN para o aluno anotar (especialmente útil para
-      // alunos legados que ainda não tinham um LOGIN gerado).
       setAssignedLogin(login);
       setStep("show-login");
     } catch {
@@ -267,6 +272,7 @@ function AlunoEntry() {
       setLoading(false);
     }
   };
+
 
 
   const back = () => {
