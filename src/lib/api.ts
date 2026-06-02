@@ -32,17 +32,32 @@ export function buildUsernameBase(fullName: string): string {
     .join("");
 }
 
-// Encontra um username livre, anexando 2,3,4... se necessário.
-export async function pickAvailableUsername(fullName: string, excludeId?: string): Promise<string> {
+// Encontra um username livre. Quando birthYear é informado, o LOGIN é
+// "iniciais + ano (4 dígitos)", ex.: "jpss2010". Em caso de colisão (raro),
+// anexa um sufixo numérico.
+export async function pickAvailableUsername(
+  fullName: string,
+  birthYear?: number | null,
+  excludeId?: string,
+): Promise<string> {
   const base = buildUsernameBase(fullName) || "aluno";
+  const yearSuffix = birthYear && birthYear > 0 ? String(birthYear) : "";
+  const root = `${base}${yearSuffix}`;
   for (let i = 1; i < 999; i++) {
-    const candidate = i === 1 ? base : `${base}${i}`;
+    const candidate = i === 1 ? root : `${root}-${i}`;
     let q = supabase.from("students").select("id").ilike("username", candidate);
     if (excludeId) q = q.neq("id", excludeId);
     const { data } = await q.maybeSingle();
     if (!data) return candidate;
   }
-  return `${base}${Date.now()}`;
+  return `${root}-${Date.now()}`;
+}
+
+export function validateBirthYear(y: number | null | undefined): string | null {
+  if (!y || !Number.isInteger(y)) return "Informe o ano de nascimento (4 dígitos)";
+  const now = new Date().getFullYear();
+  if (y < 1930 || y > now) return "Ano de nascimento inválido";
+  return null;
 }
 
 export async function findStudentByUsername(username: string): Promise<Student | null> {
