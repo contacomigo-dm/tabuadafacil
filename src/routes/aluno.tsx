@@ -307,7 +307,12 @@ function AlunoEntry() {
     }
   };
 
-  const previewLogin = selected ? buildUsernameBase(selected.first_name) : "";
+  const previewLogin = selected
+    ? `${buildUsernameBase(selected.first_name)}${birthYear.trim().length === 4 ? birthYear.trim() : ""}`
+    : "";
+  const visitorPreview = visitorName.trim().length >= 2
+    ? `${buildUsernameBase(visitorName)}${birthYear.trim().length === 4 ? birthYear.trim() : ""}`
+    : "";
 
   return (
     <main className="min-h-screen leaf-bg flex items-center justify-center px-4 py-8">
