@@ -166,19 +166,44 @@ export async function verifyStudentPassword(
   return h === student.password_hash;
 }
 
-export async function setStudentPassword(student: Student, password: string): Promise<string> {
+export async function setStudentPassword(
+  student: Student,
+  password: string,
+  birthYear?: number | null,
+): Promise<string> {
   const hash = await hashPassword(student.first_name, password);
-  // Garante login (username) se ainda não tiver
-  const username =
-    student.username && student.username.trim().length > 0
-      ? student.username
-      : await pickAvailableUsername(student.first_name, student.id);
-  const { error } = await supabase
-    .from("students")
-    .update({ password_hash: hash, username, updated_at: new Date().toISOString() })
-    .eq("id", student.id);
+  const effectiveYear = birthYear ?? student.birth_year ?? null;
+  // Regenera o LOGIN se ainda não tiver, ou se acabamos de receber o ano
+  // de nascimento (para padronizar o formato iniciais+ano).
+  const needsNewLogin =
+    !student.username || student.username.trim().length === 0 ||
+    (birthYear != null && birthYear !== student.birth_year);
+  const username = needsNewLogin
+    ? await pickAvailableUsername(student.first_name, effectiveYear, student.id)
+    : student.username!;
+  const patch: Record<string, unknown> = {
+    password_hash: hash,
+    username,
+    updated_at: new Date().toISOString(),
+  };
+  if (birthYear != null) patch.birth_year = birthYear;
+  const { error } = await supabase.from("students").update(patch).eq("id", student.id);
   if (error) throw error;
   return username;
+}
+
+// Limpa senha e LOGIN de um aluno (usado pelo professor para resetar acesso).
+export async function clearStudentPassword(studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("students")
+    .update({
+      password_hash: null,
+      username: null,
+      birth_year: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", studentId);
+  if (error) throw error;
 }
 
 // Cria um aluno "Visitante" (público em geral) com login e senha próprios.
@@ -186,10 +211,11 @@ export async function setStudentPassword(student: Student, password: string): Pr
 export async function createVisitor(
   fullName: string,
   password: string,
+  birthYear: number,
 ): Promise<{ student: Student; username: string }> {
   const name = fullName.trim().replace(/\s+/g, " ");
   if (name.length < 2) throw new Error("Nome muito curto");
-  const username = await pickAvailableUsername(name);
+  const username = await pickAvailableUsername(name, birthYear);
   const hash = await hashPassword(name, password);
   const { data, error } = await supabase
     .from("students")
@@ -197,6 +223,7 @@ export async function createVisitor(
       first_name: name,
       password_hash: hash,
       username,
+      birth_year: birthYear,
       grade: "Visitante",
       class_name: null,
       shift: null,
