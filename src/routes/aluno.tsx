@@ -665,7 +665,6 @@ function AlunoEntry() {
             </p>
             <Input
               type="password"
-              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nova senha (letras + números)"
