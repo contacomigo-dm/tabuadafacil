@@ -644,8 +644,20 @@ function AlunoEntry() {
                 {previewLogin || "—"}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                (iniciais do seu nome — anote para os próximos acessos)
+                (iniciais do seu nome + ano de nascimento — anote para os próximos acessos)
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Ano de nascimento</label>
+              <Input
+                autoFocus
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
             </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
