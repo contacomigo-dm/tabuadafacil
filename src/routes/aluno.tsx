@@ -60,6 +60,7 @@ function AlunoEntry() {
   const [password2, setPassword2] = useState("");
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
+  const [birthYear, setBirthYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [flow, setFlow] = useState<Flow>("first");
 
