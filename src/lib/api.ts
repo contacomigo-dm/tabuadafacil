@@ -181,7 +181,12 @@ export async function setStudentPassword(
   const username = needsNewLogin
     ? await pickAvailableUsername(student.first_name, effectiveYear, student.id)
     : student.username!;
-  const patch: Record<string, unknown> = {
+  const patch: {
+    password_hash: string;
+    username: string;
+    updated_at: string;
+    birth_year?: number;
+  } = {
     password_hash: hash,
     username,
     updated_at: new Date().toISOString(),
