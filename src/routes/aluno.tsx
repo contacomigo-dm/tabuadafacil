@@ -6,6 +6,7 @@ import {
   verifyStudentPassword,
   setStudentPassword,
   validatePasswordStrength,
+  validateBirthYear,
   listStudentsByEnrollment,
   findStudentByUsername,
   getSchoolCode,
