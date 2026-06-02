@@ -99,6 +99,7 @@ export type Database = {
       students: {
         Row: {
           best_streak: number
+          birth_year: number | null
           class_name: string | null
           created_at: string
           current_level: number
@@ -115,6 +116,7 @@ export type Database = {
         }
         Insert: {
           best_streak?: number
+          birth_year?: number | null
           class_name?: string | null
           created_at?: string
           current_level?: number
@@ -131,6 +133,7 @@ export type Database = {
         }
         Update: {
           best_streak?: number
+          birth_year?: number | null
           class_name?: string | null
           created_at?: string
           current_level?: number
