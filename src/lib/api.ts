@@ -5,6 +5,7 @@ export interface Student {
   id: string;
   first_name: string;
   username: string | null;
+  birth_year: number | null;
   current_level: number;
   best_streak: number;
   current_streak: number;
