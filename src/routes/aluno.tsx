@@ -406,11 +406,22 @@ function AlunoEntry() {
                 placeholder="ex: maria silva souza"
                 className="h-14 text-lg rounded-xl"
               />
-              {visitorName.trim().length >= 2 && (
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Ano de nascimento</label>
+              <Input
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
+              {visitorPreview && (
                 <div className="text-xs text-muted-foreground mt-1">
                   Seu LOGIN será:{" "}
                   <span className="font-mono font-bold text-primary tracking-wider">
-                    {buildUsernameBase(visitorName) || "—"}
+                    {visitorPreview}
                   </span>
                 </div>
               )}
