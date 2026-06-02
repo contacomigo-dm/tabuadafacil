@@ -738,18 +738,32 @@ function AlunoEntry() {
               <div className="font-semibold text-foreground mb-1">Aluno(a):</div>
               <div className="font-bold text-lg text-primary">{selected.first_name}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                LOGIN:{" "}
-                <span className="font-mono font-bold tracking-wider">
-                  {selected.username ?? "—"}
+                Novo LOGIN:{" "}
+                <span className="font-mono font-bold tracking-wider text-primary">
+                  {previewLogin || "—"}
                 </span>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Ano de nascimento</label>
+              <Input
+                autoFocus
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Confirme seu ano de nascimento — ele faz parte do seu novo LOGIN.
+              </p>
             </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma nova senha com pelo menos 6 caracteres, contendo letras e números.
             </p>
             <Input
               type="password"
-              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nova senha"
