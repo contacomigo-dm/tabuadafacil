@@ -765,7 +765,7 @@ function StepRows({
             return (
               <div
                 key={`p-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-destructive text-center"
+                className=cn(textClass, "font-bold text-destructive text-center")
                 style={{ width: `${colW}px` }}
               >
                 {productStart === 0 ? `−${productStr[0]}` : "−"}
@@ -778,7 +778,7 @@ function StepRows({
             return (
               <div
                 key={`p-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-destructive text-center"
+                className=cn(textClass, "font-bold text-destructive text-center")
                 style={{ width: `${colW}px` }}
               >
                 {ch}
@@ -857,7 +857,7 @@ function StepRows({
             return (
               <div
                 key={`r-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-river text-center bg-river/15 rounded-md"
+                className=cn(textClass, "font-bold text-river text-center bg-river/15 rounded-md")
                 style={{ width: `${colW}px` }}
               >
                 {broughtDownDigit}
@@ -906,7 +906,7 @@ function CurrentProductRow({
             return (
               <div
                 key={`cp-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-river text-center"
+                className=cn(textClass, "font-bold text-river text-center")
                 style={{ width: `${colW}px` }}
               >
                 {productStart === 0 ? `−${productStr[0]}` : "−"}
@@ -919,7 +919,7 @@ function CurrentProductRow({
             return (
               <div
                 key={`cp-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-river text-center bg-river/10 rounded-md"
+                className=cn(textClass, "font-bold text-river text-center bg-river/10 rounded-md")
                 style={{ width: `${colW}px` }}
               >
                 {ch}
