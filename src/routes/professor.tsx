@@ -217,12 +217,22 @@ function TeacherPage() {
           if (st) selectStudent(st);
         }} />
 
+        <AtividadePorData
+          students={students}
+          onSelectStudent={(id) => {
+            const st = students.find((x) => x.id === id);
+            if (st) selectStudent(st);
+          }}
+        />
+
         <RosterManager
           onCreated={async () => {
             const fresh = await listStudents();
             setStudents(fresh);
           }}
         />
+
+
 
 
         <div className="grid lg:grid-cols-[300px,1fr] gap-6">
