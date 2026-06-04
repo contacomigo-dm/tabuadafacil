@@ -597,6 +597,8 @@ function DivisionBoard({
   currentChunk,
   currentProduct,
   currentDigitIndex,
+  colW = 44,
+  compact = false,
 }: {
   plan: DivisionPlan;
   history: StepRecord[];
@@ -607,9 +609,13 @@ function DivisionBoard({
   currentChunk: number;
   currentProduct: number | null;
   currentDigitIndex: number;
+  colW?: number;
+  compact?: boolean;
 }) {
   const cols = plan.dividendDigits.length;
-  const colW = 44; // px per column
+  const digitTextClass = compact ? "text-xl" : "text-3xl sm:text-4xl";
+  const smallDigitTextClass = compact ? "text-lg" : "text-2xl sm:text-3xl";
+
 
   // Build rows of subtraction blocks. Each completed step contributes:
   //   - product row, right-aligned to digitIndex
