@@ -699,6 +699,7 @@ function DivisionBoard({
               broughtDownDigit={broughtDownDigit}
               broughtDownDigitIndex={broughtDownDigitIndex}
               isActiveChunk={idx === history.length - 1 && phase !== "done" && nextStep !== undefined}
+              textClass={smallDigitTextClass}
             />
           );
         })}
@@ -714,6 +715,7 @@ function DivisionBoard({
               cols={cols}
               colW={colW}
               showSubtract={phase === "subtract"}
+              textClass={smallDigitTextClass}
             />
           )}
       </div>
