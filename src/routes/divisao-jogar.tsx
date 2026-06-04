@@ -839,7 +839,8 @@ function StepRows({
               <div
                 key={`r-${i}`}
                 className={cn(
-                  "text-2xl sm:text-3xl font-bold text-center",
+                  textClass,
+                  "font-bold text-center",
                   isActiveChunk
                     ? "text-river bg-river/15 rounded-md"
                     : "text-foreground",
