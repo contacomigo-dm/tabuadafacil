@@ -338,10 +338,12 @@ function PlayDivisao() {
   // For the FIRST step it's just dividend[0..digitIndex]
   // We show this as the "highlighted" overlay below the dividend.
 
+  const isMobile = useIsMobile();
+
   return (
-    <main className="min-h-screen leaf-bg px-4 py-6">
+    <main className="min-h-screen leaf-bg px-2 sm:px-4 py-3 sm:py-6 pb-[60vh] lg:pb-6">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2 sm:mb-4">
           <button
             onClick={() => navigate({ to: "/divisao" })}
             className="text-sm text-muted-foreground hover:text-foreground"
@@ -365,9 +367,9 @@ function PlayDivisao() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+        <div className="grid lg:grid-cols-[1fr_320px] gap-3 lg:gap-6">
           {/* Conta armada */}
-          <div className="bg-card rounded-3xl p-6 sm:p-10 border border-border shadow-[var(--shadow-soft)]">
+          <div className="bg-card rounded-2xl sm:rounded-3xl p-3 sm:p-10 border border-border shadow-[var(--shadow-soft)]">
             <DivisionBoard
               plan={plan}
               history={history}
@@ -380,11 +382,14 @@ function PlayDivisao() {
                 confirmedQuotient !== null ? confirmedQuotient * plan.divisor : null
               }
               currentDigitIndex={currentStep?.digitIndex ?? -1}
+              colW={isMobile ? 28 : 44}
+              compact={isMobile}
             />
           </div>
 
-          {/* Painel lateral */}
-          <aside className="bg-card rounded-3xl p-6 border border-border shadow-[var(--shadow-soft)] flex flex-col">
+          {/* Painel lateral — fixo no rodapé no celular para evitar rolagem */}
+          <aside className="bg-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border shadow-[var(--shadow-soft)] flex flex-col fixed bottom-0 left-0 right-0 z-40 max-h-[55vh] overflow-y-auto rounded-b-none lg:static lg:max-h-none lg:rounded-3xl">
+
             {phase === "quotient" && currentStep && (
               <div>
                 <div className="text-xs uppercase tracking-wider font-semibold text-river mb-2">
