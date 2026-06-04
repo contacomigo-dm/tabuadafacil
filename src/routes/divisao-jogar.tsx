@@ -655,7 +655,8 @@ function DivisionBoard({
               <div
                 key={`div-${i}`}
                 className={cn(
-                  "text-3xl sm:text-4xl font-bold text-center transition-colors",
+                  digitTextClass,
+                  "font-bold text-center transition-colors",
                   highlightDividend
                     ? "text-river bg-river/15 rounded-md"
                     : "text-foreground",
@@ -667,14 +668,14 @@ function DivisionBoard({
             );
           })}
           {/* Vertical divider "|" of the casinha */}
-          <div className="px-2 text-3xl sm:text-4xl font-bold text-foreground">│</div>
+          <div className={cn("px-2 font-bold text-foreground", digitTextClass)}>│</div>
           {/* Divisor on top, quotient below it (separated by horizontal bar) */}
           <div className="flex flex-col items-center">
-            <div className="h-10 flex items-end text-3xl sm:text-4xl font-bold text-foreground">
+            <div className={cn("h-10 flex items-end font-bold text-foreground", digitTextClass)}>
               {plan.divisor}
             </div>
             <div className="w-full h-0.5 bg-foreground" />
-            <div className="h-10 flex items-start text-3xl sm:text-4xl font-bold text-river">
+            <div className={cn("h-10 flex items-start font-bold text-river", digitTextClass)}>
               {quotientDisplay || "?"}
             </div>
           </div>
