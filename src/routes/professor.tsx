@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, clearStudentPassword, getOverallRanking, createStudentsRoster, type Student, type TableStat, type RankingEntry } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -216,12 +217,22 @@ function TeacherPage() {
           if (st) selectStudent(st);
         }} />
 
+        <AtividadePorData
+          students={students}
+          onSelectStudent={(id) => {
+            const st = students.find((x) => x.id === id);
+            if (st) selectStudent(st);
+          }}
+        />
+
         <RosterManager
           onCreated={async () => {
             const fresh = await listStudents();
             setStudents(fresh);
           }}
         />
+
+
 
 
         <div className="grid lg:grid-cols-[300px,1fr] gap-6">
@@ -618,6 +629,173 @@ function Card({
     </div>
   );
 }
+function AtividadePorData({
+  students,
+  onSelectStudent,
+}: {
+  students: Student[];
+  onSelectStudent?: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState<string>(today);
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<Array<{
+    student_id: string;
+    first_name: string;
+    turma: string;
+    sessions: number;
+    correct: number;
+    wrong: number;
+    activities: Set<string>;
+  }> | null>(null);
+
+  const buscar = async () => {
+    if (!date) return;
+    setLoading(true);
+    try {
+      const start = new Date(`${date}T00:00:00`);
+      const end = new Date(`${date}T23:59:59.999`);
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("student_id, correct_count, wrong_count, activity, started_at")
+        .gte("started_at", start.toISOString())
+        .lte("started_at", end.toISOString());
+      if (error) throw error;
+      const byId = new Map(students.map((s) => [s.id, s]));
+      const agg = new Map<string, {
+        student_id: string;
+        first_name: string;
+        turma: string;
+        sessions: number;
+        correct: number;
+        wrong: number;
+        activities: Set<string>;
+      }>();
+      for (const r of data ?? []) {
+        const st = byId.get(r.student_id);
+        if (!st) continue;
+        const turma = st.class_name?.trim()
+          ? `${st.grade ?? ""} ${st.class_name}`.trim()
+          : (st.grade ?? "Sem turma");
+        const row = agg.get(r.student_id) ?? {
+          student_id: r.student_id,
+          first_name: st.first_name,
+          turma,
+          sessions: 0,
+          correct: 0,
+          wrong: 0,
+          activities: new Set<string>(),
+        };
+        row.sessions += 1;
+        row.correct += r.correct_count ?? 0;
+        row.wrong += r.wrong_count ?? 0;
+        row.activities.add(r.activity ?? "multiplication");
+        agg.set(r.student_id, row);
+      }
+      setRows([...agg.values()].sort((a, b) => b.correct + b.wrong - (a.correct + a.wrong)));
+    } catch {
+      toast.error("Erro ao buscar atividade");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-border mb-6">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between p-4"
+      >
+        <span className="text-lg font-extrabold flex items-center gap-2">📅 Atividade por data</span>
+        <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Veja quais alunos praticaram num determinado dia.
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <div>
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Data</label>
+              <Input
+                type="date"
+                value={date}
+                max={today}
+                onChange={(e) => setDate(e.target.value)}
+                className="h-10 w-44"
+              />
+            </div>
+            <Button onClick={buscar} disabled={loading || !date} className="bg-primary h-10">
+              {loading ? "Buscando..." : "Buscar"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setDate(today); setRows(null); }}
+              className="h-10"
+            >
+              Limpar
+            </Button>
+          </div>
+          {rows === null ? (
+            <p className="text-sm text-muted-foreground">Escolha uma data e clique em Buscar.</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum aluno praticou nesta data.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <p className="text-xs text-muted-foreground mb-2">
+                {rows.length} aluno(s) praticaram em{" "}
+                {new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR")}
+              </p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b border-border">
+                    <th className="py-2">Aluno</th>
+                    <th className="py-2">Turma</th>
+                    <th className="py-2">Atividade</th>
+                    <th className="py-2 text-right">Sessões</th>
+                    <th className="py-2 text-right">Acertos</th>
+                    <th className="py-2 text-right">Erros</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.student_id} className="border-b border-border/50">
+                      <td className="py-2 font-bold">
+                        {onSelectStudent ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectStudent(r.student_id)}
+                            className="text-primary hover:underline text-left"
+                          >
+                            {r.first_name}
+                          </button>
+                        ) : (
+                          r.first_name
+                        )}
+                      </td>
+                      <td className="py-2 text-muted-foreground">{r.turma}</td>
+                      <td className="py-2 text-muted-foreground">
+                        {[...r.activities]
+                          .map((a) => (a === "division" ? "➗" : "✖️"))
+                          .join(" ")}
+                      </td>
+                      <td className="py-2 text-right tabular-nums">{r.sessions}</td>
+                      <td className="py-2 text-right text-success font-semibold">{r.correct}</td>
+                      <td className="py-2 text-right text-warning font-semibold">{r.wrong}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSelectStudent?: (id: string) => void }) {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
