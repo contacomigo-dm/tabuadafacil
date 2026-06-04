@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   buildPlan,
   getDivisionLevel,
@@ -337,10 +338,12 @@ function PlayDivisao() {
   // For the FIRST step it's just dividend[0..digitIndex]
   // We show this as the "highlighted" overlay below the dividend.
 
+  const isMobile = useIsMobile();
+
   return (
-    <main className="min-h-screen leaf-bg px-4 py-6">
+    <main className="min-h-screen leaf-bg px-2 sm:px-4 py-3 sm:py-6 pb-[60vh] lg:pb-6">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2 sm:mb-4">
           <button
             onClick={() => navigate({ to: "/divisao" })}
             className="text-sm text-muted-foreground hover:text-foreground"
@@ -364,9 +367,9 @@ function PlayDivisao() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+        <div className="grid lg:grid-cols-[1fr_320px] gap-3 lg:gap-6">
           {/* Conta armada */}
-          <div className="bg-card rounded-3xl p-6 sm:p-10 border border-border shadow-[var(--shadow-soft)]">
+          <div className="bg-card rounded-2xl sm:rounded-3xl p-3 sm:p-10 border border-border shadow-[var(--shadow-soft)]">
             <DivisionBoard
               plan={plan}
               history={history}
@@ -379,11 +382,14 @@ function PlayDivisao() {
                 confirmedQuotient !== null ? confirmedQuotient * plan.divisor : null
               }
               currentDigitIndex={currentStep?.digitIndex ?? -1}
+              colW={isMobile ? 28 : 44}
+              compact={isMobile}
             />
           </div>
 
-          {/* Painel lateral */}
-          <aside className="bg-card rounded-3xl p-6 border border-border shadow-[var(--shadow-soft)] flex flex-col">
+          {/* Painel lateral — fixo no rodapé no celular para evitar rolagem */}
+          <aside className="bg-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border shadow-[var(--shadow-soft)] flex flex-col fixed bottom-0 left-0 right-0 z-40 max-h-[55vh] overflow-y-auto rounded-b-none lg:static lg:max-h-none lg:rounded-3xl">
+
             {phase === "quotient" && currentStep && (
               <div>
                 <div className="text-xs uppercase tracking-wider font-semibold text-river mb-2">
@@ -591,6 +597,8 @@ function DivisionBoard({
   currentChunk,
   currentProduct,
   currentDigitIndex,
+  colW = 44,
+  compact = false,
 }: {
   plan: DivisionPlan;
   history: StepRecord[];
@@ -601,9 +609,13 @@ function DivisionBoard({
   currentChunk: number;
   currentProduct: number | null;
   currentDigitIndex: number;
+  colW?: number;
+  compact?: boolean;
 }) {
   const cols = plan.dividendDigits.length;
-  const colW = 44; // px per column
+  const digitTextClass = compact ? "text-xl" : "text-3xl sm:text-4xl";
+  const smallDigitTextClass = compact ? "text-lg" : "text-2xl sm:text-3xl";
+
 
   // Build rows of subtraction blocks. Each completed step contributes:
   //   - product row, right-aligned to digitIndex
@@ -643,7 +655,8 @@ function DivisionBoard({
               <div
                 key={`div-${i}`}
                 className={cn(
-                  "text-3xl sm:text-4xl font-bold text-center transition-colors",
+                  digitTextClass,
+                  "font-bold text-center transition-colors",
                   highlightDividend
                     ? "text-river bg-river/15 rounded-md"
                     : "text-foreground",
@@ -655,14 +668,14 @@ function DivisionBoard({
             );
           })}
           {/* Vertical divider "|" of the casinha */}
-          <div className="px-2 text-3xl sm:text-4xl font-bold text-foreground">│</div>
+          <div className={cn("px-2 font-bold text-foreground", digitTextClass)}>│</div>
           {/* Divisor on top, quotient below it (separated by horizontal bar) */}
           <div className="flex flex-col items-center">
-            <div className="h-10 flex items-end text-3xl sm:text-4xl font-bold text-foreground">
+            <div className={cn("h-10 flex items-end font-bold text-foreground", digitTextClass)}>
               {plan.divisor}
             </div>
             <div className="w-full h-0.5 bg-foreground" />
-            <div className="h-10 flex items-start text-3xl sm:text-4xl font-bold text-river">
+            <div className={cn("h-10 flex items-start font-bold text-river", digitTextClass)}>
               {quotientDisplay || "?"}
             </div>
           </div>
@@ -686,6 +699,7 @@ function DivisionBoard({
               broughtDownDigit={broughtDownDigit}
               broughtDownDigitIndex={broughtDownDigitIndex}
               isActiveChunk={idx === history.length - 1 && phase !== "done" && nextStep !== undefined}
+              textClass={smallDigitTextClass}
             />
           );
         })}
@@ -701,6 +715,7 @@ function DivisionBoard({
               cols={cols}
               colW={colW}
               showSubtract={phase === "subtract"}
+              textClass={smallDigitTextClass}
             />
           )}
       </div>
@@ -715,6 +730,7 @@ function StepRows({
   broughtDownDigit,
   broughtDownDigitIndex,
   isActiveChunk = false,
+  textClass = "text-2xl sm:text-3xl",
 }: {
   rec: StepRecord;
   cols: number;
@@ -722,6 +738,7 @@ function StepRows({
   broughtDownDigit?: number | null;
   broughtDownDigitIndex?: number;
   isActiveChunk?: boolean;
+  textClass?: string;
 }) {
   const productStr = String(rec.product).padStart(String(rec.chunkBefore).length, "0");
   const remainderStr = String(rec.remainder);
@@ -748,7 +765,7 @@ function StepRows({
             return (
               <div
                 key={`p-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-destructive text-center"
+                className={cn(textClass, "font-bold text-destructive text-center")}
                 style={{ width: `${colW}px` }}
               >
                 {productStart === 0 ? `−${productStr[0]}` : "−"}
@@ -761,7 +778,7 @@ function StepRows({
             return (
               <div
                 key={`p-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-destructive text-center"
+                className={cn(textClass, "font-bold text-destructive text-center")}
                 style={{ width: `${colW}px` }}
               >
                 {ch}
@@ -822,7 +839,8 @@ function StepRows({
               <div
                 key={`r-${i}`}
                 className={cn(
-                  "text-2xl sm:text-3xl font-bold text-center",
+                  textClass,
+                  "font-bold text-center",
                   isActiveChunk
                     ? "text-river bg-river/15 rounded-md"
                     : "text-foreground",
@@ -840,7 +858,7 @@ function StepRows({
             return (
               <div
                 key={`r-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-river text-center bg-river/15 rounded-md"
+                className={cn(textClass, "font-bold text-river text-center bg-river/15 rounded-md")}
                 style={{ width: `${colW}px` }}
               >
                 {broughtDownDigit}
@@ -863,6 +881,7 @@ function CurrentProductRow({
   cols,
   colW,
   showSubtract,
+  textClass = "text-2xl sm:text-3xl",
 }: {
   product: number;
   digitIndex: number;
@@ -870,6 +889,7 @@ function CurrentProductRow({
   cols: number;
   colW: number;
   showSubtract: boolean;
+  textClass?: string;
 }) {
   const productStr = String(product).padStart(String(chunk).length, "0");
   const endCol = digitIndex;
@@ -887,7 +907,7 @@ function CurrentProductRow({
             return (
               <div
                 key={`cp-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-river text-center"
+                className={cn(textClass, "font-bold text-river text-center")}
                 style={{ width: `${colW}px` }}
               >
                 {productStart === 0 ? `−${productStr[0]}` : "−"}
@@ -900,7 +920,7 @@ function CurrentProductRow({
             return (
               <div
                 key={`cp-${i}`}
-                className="text-2xl sm:text-3xl font-bold text-river text-center bg-river/10 rounded-md"
+                className={cn(textClass, "font-bold text-river text-center bg-river/10 rounded-md")}
                 style={{ width: `${colW}px` }}
               >
                 {ch}
