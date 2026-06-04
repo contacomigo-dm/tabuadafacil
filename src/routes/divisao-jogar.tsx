@@ -880,6 +880,7 @@ function CurrentProductRow({
   cols,
   colW,
   showSubtract,
+  textClass = "text-2xl sm:text-3xl",
 }: {
   product: number;
   digitIndex: number;
@@ -887,6 +888,7 @@ function CurrentProductRow({
   cols: number;
   colW: number;
   showSubtract: boolean;
+  textClass?: string;
 }) {
   const productStr = String(product).padStart(String(chunk).length, "0");
   const endCol = digitIndex;
