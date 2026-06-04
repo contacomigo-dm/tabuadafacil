@@ -730,6 +730,7 @@ function StepRows({
   broughtDownDigit,
   broughtDownDigitIndex,
   isActiveChunk = false,
+  textClass = "text-2xl sm:text-3xl",
 }: {
   rec: StepRecord;
   cols: number;
@@ -737,6 +738,7 @@ function StepRows({
   broughtDownDigit?: number | null;
   broughtDownDigitIndex?: number;
   isActiveChunk?: boolean;
+  textClass?: string;
 }) {
   const productStr = String(rec.product).padStart(String(rec.chunkBefore).length, "0");
   const remainderStr = String(rec.remainder);
