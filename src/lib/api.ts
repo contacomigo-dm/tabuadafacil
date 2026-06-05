@@ -6,6 +6,8 @@ export interface Student {
   first_name: string;
   username: string | null;
   birth_year: number | null;
+  favorite_color: string | null;
+  favorite_subject: string | null;
   current_level: number;
   best_streak: number;
   current_streak: number;
@@ -17,6 +19,31 @@ export interface Student {
   password_hash: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Listas fixas de opções para as perguntas de segurança.
+export const FAVORITE_COLORS = [
+  "vermelho", "azul", "verde", "amarelo", "rosa",
+  "roxo", "laranja", "preto", "branco", "marrom",
+] as const;
+
+export const FAVORITE_SUBJECTS = [
+  "Matemática", "Português", "Ciências", "História",
+  "Geografia", "Artes", "Educação Física", "Inglês",
+] as const;
+
+export function validateFavoriteColor(c: string | null | undefined): string | null {
+  if (!c || !FAVORITE_COLORS.includes(c.toLowerCase() as typeof FAVORITE_COLORS[number])) {
+    return "Selecione sua cor preferida";
+  }
+  return null;
+}
+
+export function validateFavoriteSubject(s: string | null | undefined): string | null {
+  if (!s || !(FAVORITE_SUBJECTS as readonly string[]).includes(s)) {
+    return "Selecione seu componente curricular preferido";
+  }
+  return null;
 }
 
 // Gera login a partir do nome completo: "joão pedro sousa da silva" → "jpss".
@@ -166,15 +193,20 @@ export async function verifyStudentPassword(
   return h === student.password_hash;
 }
 
+export interface SecurityAnswers {
+  birthYear: number;
+  favoriteColor: string;
+  favoriteSubject: string;
+}
+
 export async function setStudentPassword(
   student: Student,
   password: string,
   birthYear?: number | null,
+  security?: { favoriteColor?: string | null; favoriteSubject?: string | null },
 ): Promise<string> {
   const hash = await hashPassword(student.first_name, password);
   const effectiveYear = birthYear ?? student.birth_year ?? null;
-  // Regenera o LOGIN se ainda não tiver, ou se acabamos de receber o ano
-  // de nascimento (para padronizar o formato iniciais+ano).
   const needsNewLogin =
     !student.username || student.username.trim().length === 0 ||
     (birthYear != null && birthYear !== student.birth_year);
@@ -186,15 +218,36 @@ export async function setStudentPassword(
     username: string;
     updated_at: string;
     birth_year?: number;
+    favorite_color?: string;
+    favorite_subject?: string;
   } = {
     password_hash: hash,
     username,
     updated_at: new Date().toISOString(),
   };
   if (birthYear != null) patch.birth_year = birthYear;
+  if (security?.favoriteColor) patch.favorite_color = security.favoriteColor.toLowerCase();
+  if (security?.favoriteSubject) patch.favorite_subject = security.favoriteSubject;
   const { error } = await supabase.from("students").update(patch).eq("id", student.id);
   if (error) throw error;
   return username;
+}
+
+// Verifica as 3 perguntas de segurança contra o cadastro do aluno.
+// Retorna true APENAS se todas baterem. Se o aluno ainda não tiver
+// favorite_color / favorite_subject registrados (legado), aceita
+// apenas o ano de nascimento como confirmação mínima.
+export function verifySecurityAnswers(student: Student, ans: SecurityAnswers): boolean {
+  const yrOk = student.birth_year === ans.birthYear;
+  const hasColor = !!student.favorite_color;
+  const hasSubject = !!student.favorite_subject;
+  if (!hasColor && !hasSubject) {
+    // Legado: aluno cadastrou senha antes das perguntas existirem
+    return yrOk;
+  }
+  const colorOk = !hasColor || student.favorite_color === ans.favoriteColor.toLowerCase();
+  const subjectOk = !hasSubject || student.favorite_subject === ans.favoriteSubject;
+  return yrOk && colorOk && subjectOk;
 }
 
 // Limpa senha e LOGIN de um aluno (usado pelo professor para resetar acesso).
@@ -205,6 +258,8 @@ export async function clearStudentPassword(studentId: string): Promise<void> {
       password_hash: null,
       username: null,
       birth_year: null,
+      favorite_color: null,
+      favorite_subject: null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", studentId);
@@ -212,11 +267,12 @@ export async function clearStudentPassword(studentId: string): Promise<void> {
 }
 
 // Cria um aluno "Visitante" (público em geral) com login e senha próprios.
-// Visitantes não pertencem a uma turma — são marcados com grade='Visitante'.
 export async function createVisitor(
   fullName: string,
   password: string,
   birthYear: number,
+  favoriteColor: string,
+  favoriteSubject: string,
 ): Promise<{ student: Student; username: string }> {
   const name = fullName.trim().replace(/\s+/g, " ");
   if (name.length < 2) throw new Error("Nome muito curto");
@@ -229,6 +285,8 @@ export async function createVisitor(
       password_hash: hash,
       username,
       birth_year: birthYear,
+      favorite_color: favoriteColor.toLowerCase(),
+      favorite_subject: favoriteSubject,
       grade: "Visitante",
       class_name: null,
       shift: null,

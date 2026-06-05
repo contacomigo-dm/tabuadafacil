@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import FontSizeControl from "@/components/FontSizeControl";
 
 function NotFoundComponent() {
   return (
@@ -31,6 +32,7 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <>
+      <FontSizeControl />
       <Outlet />
       <Toaster richColors position="top-center" />
     </>

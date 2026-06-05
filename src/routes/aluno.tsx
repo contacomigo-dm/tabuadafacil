@@ -7,11 +7,16 @@ import {
   setStudentPassword,
   validatePasswordStrength,
   validateBirthYear,
+  validateFavoriteColor,
+  validateFavoriteSubject,
+  verifySecurityAnswers,
   listStudentsByEnrollment,
   findStudentByUsername,
   getSchoolCode,
   buildUsernameBase,
   createVisitor,
+  FAVORITE_COLORS,
+  FAVORITE_SUBJECTS,
   type Student,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -37,6 +42,7 @@ type Step =
   | "show-login"
   | "visitor-register"
   | "reset-login"
+  | "reset-security"
   | "reset-set-password";
 
 type Flow = "first" | "reset";
@@ -45,6 +51,20 @@ const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
 const SHIFTS = ["Manhã", "Tarde", "Noite"];
 const isEja = (g: string) => g.includes("EJA");
+
+// Mapa de cor → swatch CSS (oklch-friendly hex aproximado).
+const COLOR_SWATCH: Record<string, string> = {
+  vermelho: "#dc2626",
+  azul: "#2563eb",
+  verde: "#16a34a",
+  amarelo: "#facc15",
+  rosa: "#ec4899",
+  roxo: "#9333ea",
+  laranja: "#f97316",
+  preto: "#0a0a0a",
+  branco: "#f8fafc",
+  marrom: "#92400e",
+};
 
 function AlunoEntry() {
   const navigate = useNavigate();
@@ -61,6 +81,8 @@ function AlunoEntry() {
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [favColor, setFavColor] = useState("");
+  const [favSubject, setFavSubject] = useState("");
   const [loading, setLoading] = useState(false);
   const [flow, setFlow] = useState<Flow>("first");
 
@@ -112,9 +134,12 @@ function AlunoEntry() {
     setSelected(s);
     setPassword("");
     setPassword2("");
-    setBirthYear(s.birth_year ? String(s.birth_year) : "");
+    setBirthYear("");
+    setFavColor("");
+    setFavSubject("");
     if (flow === "reset") {
-      setStep("reset-set-password");
+      // Sempre passa pela tela de perguntas de segurança antes de redefinir.
+      setStep("reset-security");
       return;
     }
     if (s.password_hash) {
@@ -162,7 +187,6 @@ function AlunoEntry() {
         setPassword("");
         return;
       }
-      // Se aluno legado sem LOGIN, exige ano de nascimento para gerar o LOGIN
       if (!selected.username || selected.username.trim().length === 0) {
         setStep("set-password");
         return;
@@ -173,13 +197,16 @@ function AlunoEntry() {
     }
   };
 
-
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
     const yr = parseInt(birthYear, 10);
     const yErr = validateBirthYear(yr);
     if (yErr) return toast.error(yErr);
+    const cErr = validateFavoriteColor(favColor);
+    if (cErr) return toast.error(cErr);
+    const sErr = validateFavoriteSubject(favSubject);
+    if (sErr) return toast.error(sErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -187,7 +214,10 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr);
+      const login = await setStudentPassword(selected, password, yr, {
+        favoriteColor: favColor,
+        favoriteSubject: favSubject,
+      });
       setAssignedLogin(login);
       setStep("show-login");
     } catch {
@@ -204,6 +234,10 @@ function AlunoEntry() {
     const yr = parseInt(birthYear, 10);
     const yErr = validateBirthYear(yr);
     if (yErr) return toast.error(yErr);
+    const cErr = validateFavoriteColor(favColor);
+    if (cErr) return toast.error(cErr);
+    const sErr = validateFavoriteSubject(favSubject);
+    if (sErr) return toast.error(sErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -211,7 +245,7 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const { student, username } = await createVisitor(name, password, yr);
+      const { student, username } = await createVisitor(name, password, yr, favColor, favSubject);
       setSelected(student);
       setAssignedLogin(username);
       setStep("show-login");
@@ -242,11 +276,41 @@ function AlunoEntry() {
       setSelected(s);
       setPassword("");
       setPassword2("");
-      setBirthYear(s.birth_year ? String(s.birth_year) : "");
-      setStep("reset-set-password");
+      setBirthYear("");
+      setFavColor("");
+      setFavSubject("");
+      setStep("reset-security");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Confere as 3 perguntas de segurança antes de liberar a redefinição.
+  const handleResetSecurity = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected) return;
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
+    const hasSecurity = !!selected.favorite_color || !!selected.favorite_subject;
+    if (hasSecurity) {
+      const cErr = validateFavoriteColor(favColor);
+      if (cErr) return toast.error(cErr);
+      const sErr = validateFavoriteSubject(favSubject);
+      if (sErr) return toast.error(sErr);
+    }
+    const ok = verifySecurityAnswers(selected, {
+      birthYear: yr,
+      favoriteColor: favColor,
+      favoriteSubject: favSubject,
+    });
+    if (!ok) {
+      toast.error("Respostas não conferem. Procure seu professor se não lembrar.");
+      return;
+    }
+    setPassword("");
+    setPassword2("");
+    setStep("reset-set-password");
   };
 
   const handleResetSetPassword = async (e: React.FormEvent) => {
@@ -262,7 +326,10 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr);
+      const login = await setStudentPassword(selected, password, yr, {
+        favoriteColor: favColor || selected.favorite_color || undefined,
+        favoriteSubject: favSubject || selected.favorite_subject || undefined,
+      });
       toast.success("Senha redefinida com sucesso!");
       setAssignedLogin(login);
       setStep("show-login");
@@ -272,8 +339,6 @@ function AlunoEntry() {
       setLoading(false);
     }
   };
-
-
 
   const back = () => {
     if (step === "choose-mode") {
@@ -296,12 +361,11 @@ function AlunoEntry() {
       setPassword2("");
       setVisitorName("");
       setStep("choose-mode");
-    } else if (step === "reset-set-password") {
+    } else if (step === "reset-security") {
       setSelected(null);
-      setPassword("");
-      setPassword2("");
       setStep("pick-name");
-
+    } else if (step === "reset-set-password") {
+      setStep("reset-security");
     } else {
       navigate({ to: "/" });
     }
@@ -332,6 +396,7 @@ function AlunoEntry() {
             {step === "show-login" && "Guarde seu LOGIN"}
             {step === "visitor-register" && "Cadastro de visitante"}
             {step === "reset-login" && "Confirme seu LOGIN"}
+            {step === "reset-security" && `Olá, ${selected?.first_name}!`}
             {step === "reset-set-password" && `Olá, ${selected?.first_name}!`}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
@@ -345,6 +410,7 @@ function AlunoEntry() {
             {step === "show-login" && "Anote em algum lugar seguro."}
             {step === "visitor-register" && "Treine livremente — seu desempenho fica salvo."}
             {step === "reset-login" && "Digite o LOGIN (iniciais do seu nome) que você criou."}
+            {step === "reset-security" && "Responda as 3 perguntas para confirmar que é você."}
             {step === "reset-set-password" && "Agora cadastre sua nova senha."}
           </p>
         </div>
@@ -425,6 +491,47 @@ function AlunoEntry() {
                   </span>
                 </div>
               )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Cor preferida</label>
+              <div className="grid grid-cols-5 gap-2">
+                {FAVORITE_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setFavColor(c)}
+                    className={`h-12 rounded-xl border-2 transition flex flex-col items-center justify-center ${
+                      favColor === c ? "border-primary scale-105" : "border-border"
+                    }`}
+                    title={c}
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full border border-border"
+                      style={{ background: COLOR_SWATCH[c] }}
+                    />
+                    <span className="text-[10px] mt-0.5 capitalize">{c}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Componente curricular preferido</label>
+              <div className="grid grid-cols-2 gap-2">
+                {FAVORITE_SUBJECTS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setFavSubject(s)}
+                    className={`h-11 rounded-xl border font-semibold text-sm transition ${
+                      favSubject === s
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:border-primary"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
@@ -659,6 +766,50 @@ function AlunoEntry() {
                 className="h-14 text-lg rounded-xl tracking-widest text-center"
               />
             </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Cor preferida</label>
+              <div className="grid grid-cols-5 gap-2">
+                {FAVORITE_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setFavColor(c)}
+                    className={`h-12 rounded-xl border-2 transition flex flex-col items-center justify-center ${
+                      favColor === c ? "border-primary scale-105" : "border-border"
+                    }`}
+                    title={c}
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full border border-border"
+                      style={{ background: COLOR_SWATCH[c] }}
+                    />
+                    <span className="text-[10px] mt-0.5 capitalize">{c}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Vai te ajudar a recuperar a senha se você esquecer.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Componente curricular preferido</label>
+              <div className="grid grid-cols-2 gap-2">
+                {FAVORITE_SUBJECTS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setFavSubject(s)}
+                    className={`h-11 rounded-xl border font-semibold text-sm transition ${
+                      favSubject === s
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:border-primary"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
               Não diferenciamos maiúsculas de minúsculas.
@@ -732,6 +883,88 @@ function AlunoEntry() {
           </form>
         )}
 
+        {step === "reset-security" && selected && (
+          <form onSubmit={handleResetSecurity} className="space-y-3">
+            <div className="bg-secondary/50 border border-border rounded-xl p-3 text-sm">
+              <div className="font-semibold text-foreground mb-1">Aluno(a):</div>
+              <div className="font-bold text-lg text-primary">{selected.first_name}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Para sua segurança, responda as 3 perguntas que você escolheu no cadastro.
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">1) Ano de nascimento</label>
+              <Input
+                autoFocus
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
+            </div>
+            {(selected.favorite_color || selected.favorite_subject) ? (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">2) Cor preferida</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {FAVORITE_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFavColor(c)}
+                        className={`h-12 rounded-xl border-2 transition flex flex-col items-center justify-center ${
+                          favColor === c ? "border-primary scale-105" : "border-border"
+                        }`}
+                        title={c}
+                      >
+                        <span
+                          className="w-5 h-5 rounded-full border border-border"
+                          style={{ background: COLOR_SWATCH[c] }}
+                        />
+                        <span className="text-[10px] mt-0.5 capitalize">{c}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">3) Componente curricular preferido</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FAVORITE_SUBJECTS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFavSubject(s)}
+                        className={`h-11 rounded-xl border font-semibold text-sm transition ${
+                          favSubject === s
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:border-primary"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground bg-warning/20 rounded-xl p-3">
+                Seu cadastro ainda não tem as perguntas de cor e componente curricular
+                (cadastro antigo). Confirme só o ano de nascimento — você poderá escolher
+                as outras duas na próxima etapa.
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              Confirmar respostas
+            </Button>
+          </form>
+        )}
+
         {step === "reset-set-password" && selected && (
           <form onSubmit={handleResetSetPassword} className="space-y-3">
             <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
@@ -759,6 +992,51 @@ function AlunoEntry() {
                 Confirme seu ano de nascimento — ele faz parte do seu novo LOGIN.
               </p>
             </div>
+            {!selected.favorite_color && !selected.favorite_subject && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Cor preferida (nova)</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {FAVORITE_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFavColor(c)}
+                        className={`h-12 rounded-xl border-2 transition flex flex-col items-center justify-center ${
+                          favColor === c ? "border-primary scale-105" : "border-border"
+                        }`}
+                        title={c}
+                      >
+                        <span
+                          className="w-5 h-5 rounded-full border border-border"
+                          style={{ background: COLOR_SWATCH[c] }}
+                        />
+                        <span className="text-[10px] mt-0.5 capitalize">{c}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Componente curricular preferido (novo)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FAVORITE_SUBJECTS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFavSubject(s)}
+                        className={`h-11 rounded-xl border font-semibold text-sm transition ${
+                          favSubject === s
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:border-primary"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma nova senha com pelo menos 6 caracteres, contendo letras e números.
             </p>
