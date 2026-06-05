@@ -6,6 +6,8 @@ export interface Student {
   first_name: string;
   username: string | null;
   birth_year: number | null;
+  favorite_color: string | null;
+  favorite_subject: string | null;
   current_level: number;
   best_streak: number;
   current_streak: number;
@@ -17,6 +19,31 @@ export interface Student {
   password_hash: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Listas fixas de opções para as perguntas de segurança.
+export const FAVORITE_COLORS = [
+  "vermelho", "azul", "verde", "amarelo", "rosa",
+  "roxo", "laranja", "preto", "branco", "marrom",
+] as const;
+
+export const FAVORITE_SUBJECTS = [
+  "Matemática", "Português", "Ciências", "História",
+  "Geografia", "Artes", "Educação Física", "Inglês",
+] as const;
+
+export function validateFavoriteColor(c: string | null | undefined): string | null {
+  if (!c || !FAVORITE_COLORS.includes(c.toLowerCase() as typeof FAVORITE_COLORS[number])) {
+    return "Selecione sua cor preferida";
+  }
+  return null;
+}
+
+export function validateFavoriteSubject(s: string | null | undefined): string | null {
+  if (!s || !(FAVORITE_SUBJECTS as readonly string[]).includes(s)) {
+    return "Selecione seu componente curricular preferido";
+  }
+  return null;
 }
 
 // Gera login a partir do nome completo: "joão pedro sousa da silva" → "jpss".
