@@ -134,9 +134,12 @@ function AlunoEntry() {
     setSelected(s);
     setPassword("");
     setPassword2("");
-    setBirthYear(s.birth_year ? String(s.birth_year) : "");
+    setBirthYear("");
+    setFavColor("");
+    setFavSubject("");
     if (flow === "reset") {
-      setStep("reset-set-password");
+      // Sempre passa pela tela de perguntas de segurança antes de redefinir.
+      setStep("reset-security");
       return;
     }
     if (s.password_hash) {
@@ -184,7 +187,6 @@ function AlunoEntry() {
         setPassword("");
         return;
       }
-      // Se aluno legado sem LOGIN, exige ano de nascimento para gerar o LOGIN
       if (!selected.username || selected.username.trim().length === 0) {
         setStep("set-password");
         return;
@@ -195,13 +197,16 @@ function AlunoEntry() {
     }
   };
 
-
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
     const yr = parseInt(birthYear, 10);
     const yErr = validateBirthYear(yr);
     if (yErr) return toast.error(yErr);
+    const cErr = validateFavoriteColor(favColor);
+    if (cErr) return toast.error(cErr);
+    const sErr = validateFavoriteSubject(favSubject);
+    if (sErr) return toast.error(sErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -209,7 +214,10 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr);
+      const login = await setStudentPassword(selected, password, yr, {
+        favoriteColor: favColor,
+        favoriteSubject: favSubject,
+      });
       setAssignedLogin(login);
       setStep("show-login");
     } catch {
@@ -226,6 +234,10 @@ function AlunoEntry() {
     const yr = parseInt(birthYear, 10);
     const yErr = validateBirthYear(yr);
     if (yErr) return toast.error(yErr);
+    const cErr = validateFavoriteColor(favColor);
+    if (cErr) return toast.error(cErr);
+    const sErr = validateFavoriteSubject(favSubject);
+    if (sErr) return toast.error(sErr);
     const err = validatePasswordStrength(password);
     if (err) return toast.error(err);
     if (password.toLowerCase() !== password2.toLowerCase()) {
@@ -233,7 +245,7 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const { student, username } = await createVisitor(name, password, yr);
+      const { student, username } = await createVisitor(name, password, yr, favColor, favSubject);
       setSelected(student);
       setAssignedLogin(username);
       setStep("show-login");
@@ -264,11 +276,41 @@ function AlunoEntry() {
       setSelected(s);
       setPassword("");
       setPassword2("");
-      setBirthYear(s.birth_year ? String(s.birth_year) : "");
-      setStep("reset-set-password");
+      setBirthYear("");
+      setFavColor("");
+      setFavSubject("");
+      setStep("reset-security");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Confere as 3 perguntas de segurança antes de liberar a redefinição.
+  const handleResetSecurity = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected) return;
+    const yr = parseInt(birthYear, 10);
+    const yErr = validateBirthYear(yr);
+    if (yErr) return toast.error(yErr);
+    const hasSecurity = !!selected.favorite_color || !!selected.favorite_subject;
+    if (hasSecurity) {
+      const cErr = validateFavoriteColor(favColor);
+      if (cErr) return toast.error(cErr);
+      const sErr = validateFavoriteSubject(favSubject);
+      if (sErr) return toast.error(sErr);
+    }
+    const ok = verifySecurityAnswers(selected, {
+      birthYear: yr,
+      favoriteColor: favColor,
+      favoriteSubject: favSubject,
+    });
+    if (!ok) {
+      toast.error("Respostas não conferem. Procure seu professor se não lembrar.");
+      return;
+    }
+    setPassword("");
+    setPassword2("");
+    setStep("reset-set-password");
   };
 
   const handleResetSetPassword = async (e: React.FormEvent) => {
@@ -284,7 +326,10 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr);
+      const login = await setStudentPassword(selected, password, yr, {
+        favoriteColor: favColor || selected.favorite_color || undefined,
+        favoriteSubject: favSubject || selected.favorite_subject || undefined,
+      });
       toast.success("Senha redefinida com sucesso!");
       setAssignedLogin(login);
       setStep("show-login");
@@ -294,8 +339,6 @@ function AlunoEntry() {
       setLoading(false);
     }
   };
-
-
 
   const back = () => {
     if (step === "choose-mode") {
@@ -318,12 +361,11 @@ function AlunoEntry() {
       setPassword2("");
       setVisitorName("");
       setStep("choose-mode");
-    } else if (step === "reset-set-password") {
+    } else if (step === "reset-security") {
       setSelected(null);
-      setPassword("");
-      setPassword2("");
       setStep("pick-name");
-
+    } else if (step === "reset-set-password") {
+      setStep("reset-security");
     } else {
       navigate({ to: "/" });
     }
