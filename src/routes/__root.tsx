@@ -32,6 +32,7 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <>
+      <FontSizeControl />
       <Outlet />
       <Toaster richColors position="top-center" />
     </>
