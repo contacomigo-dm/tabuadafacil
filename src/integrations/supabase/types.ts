@@ -104,6 +104,8 @@ export type Database = {
           created_at: string
           current_level: number
           current_streak: number
+          favorite_color: string | null
+          favorite_subject: string | null
           first_name: string
           grade: string | null
           id: string
@@ -121,6 +123,8 @@ export type Database = {
           created_at?: string
           current_level?: number
           current_streak?: number
+          favorite_color?: string | null
+          favorite_subject?: string | null
           first_name: string
           grade?: string | null
           id?: string
@@ -138,6 +142,8 @@ export type Database = {
           created_at?: string
           current_level?: number
           current_streak?: number
+          favorite_color?: string | null
+          favorite_subject?: string | null
           first_name?: string
           grade?: string | null
           id?: string
