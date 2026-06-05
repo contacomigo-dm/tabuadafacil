@@ -7,11 +7,16 @@ import {
   setStudentPassword,
   validatePasswordStrength,
   validateBirthYear,
+  validateFavoriteColor,
+  validateFavoriteSubject,
+  verifySecurityAnswers,
   listStudentsByEnrollment,
   findStudentByUsername,
   getSchoolCode,
   buildUsernameBase,
   createVisitor,
+  FAVORITE_COLORS,
+  FAVORITE_SUBJECTS,
   type Student,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -37,6 +42,7 @@ type Step =
   | "show-login"
   | "visitor-register"
   | "reset-login"
+  | "reset-security"
   | "reset-set-password";
 
 type Flow = "first" | "reset";
@@ -45,6 +51,20 @@ const GRADES = ["1ª", "2ª", "3ª", "1º EJA"];
 const CLASSES = ["A", "B", "C", "D"];
 const SHIFTS = ["Manhã", "Tarde", "Noite"];
 const isEja = (g: string) => g.includes("EJA");
+
+// Mapa de cor → swatch CSS (oklch-friendly hex aproximado).
+const COLOR_SWATCH: Record<string, string> = {
+  vermelho: "#dc2626",
+  azul: "#2563eb",
+  verde: "#16a34a",
+  amarelo: "#facc15",
+  rosa: "#ec4899",
+  roxo: "#9333ea",
+  laranja: "#f97316",
+  preto: "#0a0a0a",
+  branco: "#f8fafc",
+  marrom: "#92400e",
+};
 
 function AlunoEntry() {
   const navigate = useNavigate();
@@ -61,6 +81,8 @@ function AlunoEntry() {
   const [assignedLogin, setAssignedLogin] = useState("");
   const [visitorName, setVisitorName] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [favColor, setFavColor] = useState("");
+  const [favSubject, setFavSubject] = useState("");
   const [loading, setLoading] = useState(false);
   const [flow, setFlow] = useState<Flow>("first");
 
