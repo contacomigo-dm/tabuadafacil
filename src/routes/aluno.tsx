@@ -883,6 +883,88 @@ function AlunoEntry() {
           </form>
         )}
 
+        {step === "reset-security" && selected && (
+          <form onSubmit={handleResetSecurity} className="space-y-3">
+            <div className="bg-secondary/50 border border-border rounded-xl p-3 text-sm">
+              <div className="font-semibold text-foreground mb-1">Aluno(a):</div>
+              <div className="font-bold text-lg text-primary">{selected.first_name}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Para sua segurança, responda as 3 perguntas que você escolheu no cadastro.
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">1) Ano de nascimento</label>
+              <Input
+                autoFocus
+                inputMode="numeric"
+                maxLength={4}
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="ex: 2012"
+                className="h-14 text-lg rounded-xl tracking-widest text-center"
+              />
+            </div>
+            {(selected.favorite_color || selected.favorite_subject) ? (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">2) Cor preferida</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {FAVORITE_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFavColor(c)}
+                        className={`h-12 rounded-xl border-2 transition flex flex-col items-center justify-center ${
+                          favColor === c ? "border-primary scale-105" : "border-border"
+                        }`}
+                        title={c}
+                      >
+                        <span
+                          className="w-5 h-5 rounded-full border border-border"
+                          style={{ background: COLOR_SWATCH[c] }}
+                        />
+                        <span className="text-[10px] mt-0.5 capitalize">{c}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">3) Componente curricular preferido</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FAVORITE_SUBJECTS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFavSubject(s)}
+                        className={`h-11 rounded-xl border font-semibold text-sm transition ${
+                          favSubject === s
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:border-primary"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground bg-warning/20 rounded-xl p-3">
+                Seu cadastro ainda não tem as perguntas de cor e componente curricular
+                (cadastro antigo). Confirme só o ano de nascimento — você poderá escolher
+                as outras duas na próxima etapa.
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="btn-pop w-full h-14 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
+            >
+              Confirmar respostas
+            </Button>
+          </form>
+        )}
+
         {step === "reset-set-password" && selected && (
           <form onSubmit={handleResetSetPassword} className="space-y-3">
             <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-sm">
