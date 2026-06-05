@@ -492,6 +492,47 @@ function AlunoEntry() {
                 </div>
               )}
             </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Cor preferida</label>
+              <div className="grid grid-cols-5 gap-2">
+                {FAVORITE_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setFavColor(c)}
+                    className={`h-12 rounded-xl border-2 transition flex flex-col items-center justify-center ${
+                      favColor === c ? "border-primary scale-105" : "border-border"
+                    }`}
+                    title={c}
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full border border-border"
+                      style={{ background: COLOR_SWATCH[c] }}
+                    />
+                    <span className="text-[10px] mt-0.5 capitalize">{c}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Componente curricular preferido</label>
+              <div className="grid grid-cols-2 gap-2">
+                {FAVORITE_SUBJECTS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setFavSubject(s)}
+                    className={`h-11 rounded-xl border font-semibold text-sm transition ${
+                      favSubject === s
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:border-primary"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3">
               Crie uma senha com pelo menos 6 caracteres, contendo letras e números.
             </p>
