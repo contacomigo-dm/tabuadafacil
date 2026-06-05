@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import FontSizeControl from "@/components/FontSizeControl";
 
 function NotFoundComponent() {
   return (
