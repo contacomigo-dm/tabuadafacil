@@ -396,6 +396,7 @@ function AlunoEntry() {
             {step === "show-login" && "Guarde seu LOGIN"}
             {step === "visitor-register" && "Cadastro de visitante"}
             {step === "reset-login" && "Confirme seu LOGIN"}
+            {step === "reset-security" && `Olá, ${selected?.first_name}!`}
             {step === "reset-set-password" && `Olá, ${selected?.first_name}!`}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
@@ -409,6 +410,7 @@ function AlunoEntry() {
             {step === "show-login" && "Anote em algum lugar seguro."}
             {step === "visitor-register" && "Treine livremente — seu desempenho fica salvo."}
             {step === "reset-login" && "Digite o LOGIN (iniciais do seu nome) que você criou."}
+            {step === "reset-security" && "Responda as 3 perguntas para confirmar que é você."}
             {step === "reset-set-password" && "Agora cadastre sua nova senha."}
           </p>
         </div>
