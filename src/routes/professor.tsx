@@ -873,6 +873,8 @@ function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSe
                     <th className="py-2 text-right">Acertos</th>
                     <th className="py-2 text-right">Erros</th>
                     <th className="py-2 text-right">% acerto</th>
+                    <th className="py-2 text-right">Dias ativos</th>
+                    <th className="py-2 text-right">Pontos</th>
                   </tr>
                 </thead>
                 <tbody>
