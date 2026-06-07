@@ -60,6 +60,11 @@ function EscolherAtividade() {
     navigate({ to: "/divisao" });
   };
 
+  const goDesafio = () => {
+    navigate({ to: "/desafio-semana" });
+  };
+
+
   const sair = () => {
     sessionStorage.removeItem("studentId");
     sessionStorage.removeItem("studentName");
@@ -99,6 +104,24 @@ function EscolherAtividade() {
             </div>
           </button>
         </div>
+
+        <button onClick={goDesafio} className="block text-left w-full mt-4">
+          <div className="btn-pop bg-gradient-to-r from-accent/30 to-primary/20 border border-accent/40 rounded-3xl p-6 hover:border-accent transition">
+            <div className="flex items-center gap-4">
+              <div className="text-4xl">🏆</div>
+              <div className="flex-1">
+                <div className="text-xl font-extrabold text-foreground">
+                  Desafio da Semana
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  10 contas iguais para toda a turma. Ganhe o selo e mantenha sua sequência!
+                </div>
+              </div>
+              <div className="text-2xl">⭐</div>
+            </div>
+          </div>
+        </button>
+
 
         {/* Ranking TOP 3 da turma */}
         <div className="mt-8 bg-card border border-border rounded-3xl p-6 text-left">
