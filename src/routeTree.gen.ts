@@ -16,6 +16,7 @@ import { Route as EscolherAtividadeRouteImport } from './routes/escolher-ativida
 import { Route as DivisaoTreinoRouteImport } from './routes/divisao-treino'
 import { Route as DivisaoJogarRouteImport } from './routes/divisao-jogar'
 import { Route as DivisaoRouteImport } from './routes/divisao'
+import { Route as DesafioSemanaRouteImport } from './routes/desafio-semana'
 import { Route as AlunoRouteImport } from './routes/aluno'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -54,6 +55,11 @@ const DivisaoRoute = DivisaoRouteImport.update({
   path: '/divisao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DesafioSemanaRoute = DesafioSemanaRouteImport.update({
+  id: '/desafio-semana',
+  path: '/desafio-semana',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlunoRoute = AlunoRouteImport.update({
   id: '/aluno',
   path: '/aluno',
@@ -68,6 +74,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/desafio-semana': typeof DesafioSemanaRoute
   '/divisao': typeof DivisaoRoute
   '/divisao-jogar': typeof DivisaoJogarRoute
   '/divisao-treino': typeof DivisaoTreinoRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/desafio-semana': typeof DesafioSemanaRoute
   '/divisao': typeof DivisaoRoute
   '/divisao-jogar': typeof DivisaoJogarRoute
   '/divisao-treino': typeof DivisaoTreinoRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/aluno': typeof AlunoRoute
+  '/desafio-semana': typeof DesafioSemanaRoute
   '/divisao': typeof DivisaoRoute
   '/divisao-jogar': typeof DivisaoJogarRoute
   '/divisao-treino': typeof DivisaoTreinoRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/aluno'
+    | '/desafio-semana'
     | '/divisao'
     | '/divisao-jogar'
     | '/divisao-treino'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/aluno'
+    | '/desafio-semana'
     | '/divisao'
     | '/divisao-jogar'
     | '/divisao-treino'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/aluno'
+    | '/desafio-semana'
     | '/divisao'
     | '/divisao-jogar'
     | '/divisao-treino'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlunoRoute: typeof AlunoRoute
+  DesafioSemanaRoute: typeof DesafioSemanaRoute
   DivisaoRoute: typeof DivisaoRoute
   DivisaoJogarRoute: typeof DivisaoJogarRoute
   DivisaoTreinoRoute: typeof DivisaoTreinoRoute
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DivisaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desafio-semana': {
+      id: '/desafio-semana'
+      path: '/desafio-semana'
+      fullPath: '/desafio-semana'
+      preLoaderRoute: typeof DesafioSemanaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aluno': {
       id: '/aluno'
       path: '/aluno'
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlunoRoute: AlunoRoute,
+  DesafioSemanaRoute: DesafioSemanaRoute,
   DivisaoRoute: DivisaoRoute,
   DivisaoJogarRoute: DivisaoJogarRoute,
   DivisaoTreinoRoute: DivisaoTreinoRoute,
