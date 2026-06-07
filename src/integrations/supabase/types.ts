@@ -177,6 +177,50 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_challenges: {
+        Row: {
+          completed_at: string
+          correct_count: number
+          created_at: string
+          id: string
+          student_id: string
+          total_questions: number
+          week: number
+          wrong_count: number
+          year: number
+        }
+        Insert: {
+          completed_at?: string
+          correct_count?: number
+          created_at?: string
+          id?: string
+          student_id: string
+          total_questions?: number
+          week: number
+          wrong_count?: number
+          year: number
+        }
+        Update: {
+          completed_at?: string
+          correct_count?: number
+          created_at?: string
+          id?: string
+          student_id?: string
+          total_questions?: number
+          week?: number
+          wrong_count?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_challenges_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
