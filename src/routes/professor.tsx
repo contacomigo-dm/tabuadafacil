@@ -873,6 +873,8 @@ function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSe
                     <th className="py-2 text-right">Acertos</th>
                     <th className="py-2 text-right">Erros</th>
                     <th className="py-2 text-right">% acerto</th>
+                    <th className="py-2 text-right">Dias ativos</th>
+                    <th className="py-2 text-right">Pontos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -898,6 +900,8 @@ function RankingGeral({ students, onSelectStudent }: { students: Student[]; onSe
                       <td className="py-2 text-right text-success font-semibold">{r.total_correct}</td>
                       <td className="py-2 text-right text-warning font-semibold">{r.total_wrong}</td>
                       <td className="py-2 text-right tabular-nums">{r.accuracy}%</td>
+                      <td className="py-2 text-right tabular-nums">{r.active_days}</td>
+                      <td className="py-2 text-right font-bold text-primary tabular-nums">{r.score}</td>
                     </tr>
                   ))}
                 </tbody>
