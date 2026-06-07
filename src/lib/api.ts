@@ -443,28 +443,77 @@ export interface RankingEntry {
   total_correct: number;
   total_wrong: number;
   accuracy: number; // 0-100
-  score: number; // ranking score
+  active_days: number; // dias distintos com sessão registrada
+  score: number; // pontuação ponderada (0-1000)
 }
 
-function rankStudents(rows: Student[]): RankingEntry[] {
-  return rows
-    .map((s) => {
-      const total = s.total_correct + s.total_wrong;
-      const accuracy = total > 0 ? (s.total_correct / total) * 100 : 0;
-      // Score privilegia acertos, mas exige consistência (acurácia)
-      const score = s.total_correct * (0.5 + accuracy / 200);
+// Pesos do ranking. Soma = 1.0
+// - Acertos (qualidade do desempenho)
+// - Volume respondido (esforço total)
+// - Frequência: dias distintos jogando (uso do app)
+const RANK_WEIGHTS = { correct: 0.45, answered: 0.25, frequency: 0.30 };
+
+async function rankStudentsWeighted(rows: Student[]): Promise<RankingEntry[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+
+  // Dias ativos distintos por aluno (frequência de uso).
+  const { data: sessions } = await supabase
+    .from("sessions")
+    .select("student_id, started_at")
+    .in("student_id", ids);
+
+  const daysByStudent = new Map<string, Set<string>>();
+  for (const s of sessions ?? []) {
+    const day = (s.started_at as string).slice(0, 10);
+    if (!daysByStudent.has(s.student_id)) daysByStudent.set(s.student_id, new Set());
+    daysByStudent.get(s.student_id)!.add(day);
+  }
+
+  const base = rows.map((s) => {
+    const answered = s.total_correct + s.total_wrong;
+    const accuracy = answered > 0 ? (s.total_correct / answered) * 100 : 0;
+    return {
+      id: s.id,
+      first_name: s.first_name,
+      class_name: s.class_name,
+      grade: s.grade,
+      total_correct: s.total_correct,
+      total_wrong: s.total_wrong,
+      answered,
+      accuracy,
+      activeDays: daysByStudent.get(s.id)?.size ?? 0,
+    };
+  }).filter((e) => e.answered > 0);
+
+  if (base.length === 0) return [];
+
+  // Normalização min-max dentro do próprio cohort para que os três
+  // critérios convivam na mesma escala (0..1).
+  const maxCorrect = Math.max(...base.map((b) => b.total_correct), 1);
+  const maxAnswered = Math.max(...base.map((b) => b.answered), 1);
+  const maxDays = Math.max(...base.map((b) => b.activeDays), 1);
+
+  return base
+    .map((b) => {
+      const raw =
+        RANK_WEIGHTS.correct * (b.total_correct / maxCorrect) +
+        RANK_WEIGHTS.answered * (b.answered / maxAnswered) +
+        RANK_WEIGHTS.frequency * (b.activeDays / maxDays);
+      // Bônus de consistência (acurácia) para desempatar: 0.85 → 1.0.
+      const accuracyBonus = 0.85 + (b.accuracy / 100) * 0.15;
       return {
-        id: s.id,
-        first_name: s.first_name,
-        class_name: s.class_name,
-        grade: s.grade,
-        total_correct: s.total_correct,
-        total_wrong: s.total_wrong,
-        accuracy: Math.round(accuracy),
-        score,
+        id: b.id,
+        first_name: b.first_name,
+        class_name: b.class_name,
+        grade: b.grade,
+        total_correct: b.total_correct,
+        total_wrong: b.total_wrong,
+        accuracy: Math.round(b.accuracy),
+        active_days: b.activeDays,
+        score: Math.round(raw * accuracyBonus * 1000),
       };
     })
-    .filter((e) => e.total_correct + e.total_wrong > 0)
     .sort((a, b) => b.score - a.score);
 }
 
@@ -474,12 +523,12 @@ export async function getClassRanking(className: string | null, grade: string | 
   else q = q.is("class_name", null);
   if (grade) q = q.eq("grade", grade);
   const { data } = await q;
-  return rankStudents((data ?? []) as Student[]);
+  return rankStudentsWeighted((data ?? []) as Student[]);
 }
 
 export async function getOverallRanking(): Promise<RankingEntry[]> {
   const { data } = await supabase.from("students").select("*");
-  return rankStudents((data ?? []) as Student[]);
+  return rankStudentsWeighted((data ?? []) as Student[]);
 }
 
 export interface TableStat {
