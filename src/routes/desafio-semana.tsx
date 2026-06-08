@@ -1,11 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
+  WEEKLY_DIV_TOTAL,
+  WEEKLY_MULT_TIMER,
+  WEEKLY_MULT_TOTAL,
   WEEKLY_TOTAL,
   computeStreak,
+  generateWeeklyDivProblems,
   generateWeeklyProblems,
   getISOWeek,
   getWeeklyRecord,
@@ -22,7 +26,7 @@ export const Route = createFileRoute("/desafio-semana")({
   component: DesafioSemana,
 });
 
-type Phase = "intro" | "playing" | "done";
+type Phase = "intro" | "mult" | "div" | "done";
 
 function DesafioSemana() {
   const navigate = useNavigate();
@@ -37,9 +41,12 @@ function DesafioSemana() {
   const [existingRecord, setExistingRecord] = useState<WeeklyRecord | null>(null);
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<WeeklyRecord[]>([]);
+  const [timeLeft, setTimeLeft] = useState(WEEKLY_MULT_TIMER);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { year, week } = useMemo(() => getISOWeek(), []);
-  const problems = useMemo(() => generateWeeklyProblems(year, week), [year, week]);
+  const multProblems = useMemo(() => generateWeeklyProblems(year, week), [year, week]);
+  const divProblems = useMemo(() => generateWeeklyDivProblems(year, week), [year, week]);
 
   useEffect(() => {
     const id = sessionStorage.getItem("studentId");
@@ -59,56 +66,127 @@ function DesafioSemana() {
     })().catch(() => {});
   }, [navigate, year, week]);
 
-  const start = () => {
-    setPhase("playing");
-    setIndex(0);
-    setCorrect(0);
-    setWrong(0);
-    setFeedback(null);
-    setLocked(false);
-  };
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
 
-  const handleAnswer = async (opt: number) => {
+  useEffect(() => () => clearTimer(), [clearTimer]);
+
+  const finishChallenge = useCallback(
+    async (finalCorrect: number, finalWrong: number) => {
+      if (!studentId) return;
+      try {
+        await saveWeeklyRecord(studentId, year, week, finalCorrect, finalWrong);
+        const all = await listWeeklyRecords(studentId);
+        setHistory(all);
+        setStreak(computeStreak(all));
+        setExistingRecord(all.find((r) => r.year === year && r.week === week) ?? null);
+      } catch (e) {
+        console.error(e);
+        toast.error("Erro ao salvar o desafio");
+      }
+      setPhase("done");
+    },
+    [studentId, year, week],
+  );
+
+  const handleMultAnswer = useCallback(
+    (opt: number | null) => {
+      if (locked || !studentId) return;
+      clearTimer();
+      setLocked(true);
+      const p = multProblems[index];
+      const ok = opt === p.answer;
+      setFeedback({ ok, ans: p.answer });
+      if (ok) setCorrect((c) => c + 1);
+      else setWrong((w) => w + 1);
+
+      logAttempt({
+        studentId,
+        tableNum: p.a,
+        multiplier: p.b,
+        correct: ok,
+        questionType: "weekly_challenge",
+      }).catch(() => {});
+
+      setTimeout(() => {
+        const next = index + 1;
+        if (next >= multProblems.length) {
+          // mudar para divisão
+          setIndex(0);
+          setFeedback(null);
+          setLocked(false);
+          setPhase("div");
+        } else {
+          setIndex(next);
+          setFeedback(null);
+          setLocked(false);
+          setTimeLeft(WEEKLY_MULT_TIMER);
+        }
+      }, 1100);
+    },
+    [locked, studentId, multProblems, index, clearTimer],
+  );
+
+  // Timer da multiplicação
+  useEffect(() => {
+    if (phase !== "mult" || locked) return;
+    setTimeLeft(WEEKLY_MULT_TIMER);
+    clearTimer();
+    const started = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - started) / 1000;
+      const left = Math.max(0, WEEKLY_MULT_TIMER - elapsed);
+      setTimeLeft(left);
+      if (left <= 0) {
+        clearTimer();
+        handleMultAnswer(null);
+      }
+    }, 100);
+    return () => clearTimer();
+  }, [phase, index, locked, clearTimer, handleMultAnswer]);
+
+  const handleDivAnswer = (opt: number) => {
     if (locked || !studentId) return;
     setLocked(true);
-    const p = problems[index];
-    const ok = opt === p.answer;
-    setFeedback({ ok, ans: p.answer });
-    if (ok) setCorrect((c) => c + 1);
-    else setWrong((w) => w + 1);
+    const p = divProblems[index];
+    const ok = opt === p.quotient;
+    setFeedback({ ok, ans: p.quotient });
+    const newCorrect = correct + (ok ? 1 : 0);
+    const newWrong = wrong + (ok ? 0 : 1);
+    if (ok) setCorrect(newCorrect);
+    else setWrong(newWrong);
 
     logAttempt({
       studentId,
-      tableNum: p.a,
-      multiplier: p.b,
+      tableNum: p.divisor,
+      multiplier: p.quotient,
       correct: ok,
-      questionType: "weekly_challenge",
+      questionType: "weekly_division",
     }).catch(() => {});
 
-    setTimeout(async () => {
+    setTimeout(() => {
       const next = index + 1;
-      if (next >= problems.length) {
-        const finalCorrect = correct + (ok ? 1 : 0);
-        const finalWrong = wrong + (ok ? 0 : 1);
-        try {
-          await saveWeeklyRecord(studentId, year, week, finalCorrect, finalWrong);
-          const all = await listWeeklyRecords(studentId);
-          setHistory(all);
-          setStreak(computeStreak(all));
-          setExistingRecord(
-            all.find((r) => r.year === year && r.week === week) ?? null,
-          );
-        } catch (e) {
-          console.error(e);
-          toast.error("Erro ao salvar o desafio");
-        }
-        setPhase("done");
+      if (next >= divProblems.length) {
+        void finishChallenge(newCorrect, newWrong);
       } else {
         setIndex(next);
         setFeedback(null);
         setLocked(false);
       }
-    }, 1200);
+    }, 1400);
+  };
+
+  const start = () => {
+    setIndex(0);
+    setCorrect(0);
+    setWrong(0);
+    setFeedback(null);
+    setLocked(false);
+    setPhase("mult");
   };
 
   if (!studentId) {
@@ -118,6 +196,9 @@ function DesafioSemana() {
       </main>
     );
   }
+
+  const totalDone =
+    phase === "mult" ? index : phase === "div" ? WEEKLY_MULT_TOTAL + index : 0;
 
   return (
     <main className="min-h-screen leaf-bg px-4 py-6">
@@ -140,7 +221,7 @@ function DesafioSemana() {
             Desafio da Semana
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Semana {week} de {year} · {WEEKLY_TOTAL} contas iguais para toda a turma
+            Semana {week} de {year} · {WEEKLY_MULT_TOTAL} multiplicações + {WEEKLY_DIV_TOTAL} divisões
           </p>
           <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/30 px-3 py-1 text-sm font-bold text-primary">
@@ -165,15 +246,18 @@ function DesafioSemana() {
                   Acertos: <span className="text-success font-bold">{existingRecord.correct_count}</span>{" "}
                   · Erros: <span className="text-warning font-bold">{existingRecord.wrong_count}</span>
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Você pode refazer para tentar melhorar — só o melhor resultado fica salvo.
-                </p>
               </>
             ) : (
-              <p className="text-muted-foreground mb-4">
-                São 10 contas. Você ganha o <b>selo da semana</b> ao terminar e mantém sua{" "}
-                <b>sequência semanal</b> se voltar toda semana!
-              </p>
+              <div className="text-muted-foreground mb-4 space-y-2 text-left sm:text-center">
+                <p>
+                  <b>Parte 1 — Multiplicação:</b> {WEEKLY_MULT_TOTAL} contas com {WEEKLY_MULT_TIMER}s
+                  para responder, 3 opções.
+                </p>
+                <p>
+                  <b>Parte 2 — Divisão:</b> {WEEKLY_DIV_TOTAL} contas (3 fáceis com 3 algarismos, 3
+                  médias com 4 algarismos e 3 difíceis com 0 no quociente). Sem temporizador.
+                </p>
+              </div>
             )}
             <Button
               onClick={start}
@@ -200,42 +284,64 @@ function DesafioSemana() {
           </div>
         )}
 
-        {phase === "playing" && (
+        {phase === "mult" && (
           <div className="bg-card rounded-3xl p-6 border border-border shadow-[var(--shadow-soft)]">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-muted-foreground">
-                Pergunta {index + 1} de {problems.length}
+                ✖ Multiplicação {index + 1}/{WEEKLY_MULT_TOTAL} · Geral {totalDone + 1}/{WEEKLY_TOTAL}
               </span>
               <span className="text-sm font-semibold">
                 <span className="text-success">{correct} ✓</span>{" "}
                 <span className="text-warning">{wrong} ✗</span>
               </span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden mb-6">
+            <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: `${(index / problems.length) * 100}%` }}
+                style={{ width: `${(totalDone / WEEKLY_TOTAL) * 100}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Tempo
+              </span>
+              <span
+                className={cn(
+                  "text-sm font-bold",
+                  timeLeft < 2 ? "text-destructive" : "text-foreground",
+                )}
+              >
+                {timeLeft.toFixed(1)}s
+              </span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-6">
+              <div
+                className={cn(
+                  "h-full transition-all",
+                  timeLeft < 2 ? "bg-destructive" : "bg-accent",
+                )}
+                style={{ width: `${(timeLeft / WEEKLY_MULT_TIMER) * 100}%` }}
               />
             </div>
             <p className="text-center text-sm text-muted-foreground font-semibold uppercase tracking-wider mb-2">
               Quanto é?
             </p>
             <div className="text-center text-6xl font-extrabold text-foreground mb-8">
-              {problems[index].a} × {problems[index].b}
+              {multProblems[index].a} × {multProblems[index].b}
             </div>
             <div className="grid gap-3">
-              {problems[index].options.map((opt) => (
+              {multProblems[index].options.map((opt) => (
                 <Button
                   key={opt}
-                  onClick={() => handleAnswer(opt)}
+                  onClick={() => handleMultAnswer(opt)}
                   disabled={locked}
                   className={cn(
                     "btn-pop h-16 text-2xl font-bold rounded-2xl",
-                    locked && opt === problems[index].answer && "bg-success hover:bg-success",
+                    locked && opt === multProblems[index].answer && "bg-success hover:bg-success",
                     locked &&
                       feedback &&
                       !feedback.ok &&
-                      opt !== problems[index].answer &&
+                      opt !== multProblems[index].answer &&
                       "bg-muted text-muted-foreground hover:bg-muted",
                   )}
                 >
@@ -258,6 +364,74 @@ function DesafioSemana() {
           </div>
         )}
 
+        {phase === "div" && divProblems[index] && (
+          <div className="bg-card rounded-3xl p-6 border border-border shadow-[var(--shadow-soft)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-muted-foreground">
+                ➗ Divisão {index + 1}/{WEEKLY_DIV_TOTAL} · Geral {totalDone + 1}/{WEEKLY_TOTAL}
+              </span>
+              <span className="text-sm font-semibold">
+                <span className="text-success">{correct} ✓</span>{" "}
+                <span className="text-warning">{wrong} ✗</span>
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden mb-4">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${(totalDone / WEEKLY_TOTAL) * 100}%` }}
+              />
+            </div>
+            <div className="text-center mb-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 border border-accent/40 px-3 py-1 text-xs font-bold text-foreground">
+                Nível {divProblems[index].level} · {divProblems[index].levelLabel}
+              </span>
+            </div>
+            <p className="text-center text-sm text-muted-foreground font-semibold uppercase tracking-wider mb-2">
+              Qual o quociente?
+            </p>
+            <div className="text-center text-5xl sm:text-6xl font-extrabold text-foreground mb-2">
+              {divProblems[index].dividend} ÷ {divProblems[index].divisor}
+            </div>
+            <p className="text-center text-xs text-muted-foreground mb-6">
+              (sem pressa — pode rabiscar no caderno!)
+            </p>
+            <div className="grid gap-3">
+              {divProblems[index].options.map((opt) => (
+                <Button
+                  key={opt}
+                  onClick={() => handleDivAnswer(opt)}
+                  disabled={locked}
+                  className={cn(
+                    "btn-pop h-16 text-2xl font-bold rounded-2xl",
+                    locked && opt === divProblems[index].quotient && "bg-success hover:bg-success",
+                    locked &&
+                      feedback &&
+                      !feedback.ok &&
+                      opt !== divProblems[index].quotient &&
+                      "bg-muted text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {opt}
+                </Button>
+              ))}
+            </div>
+            {feedback && (
+              <div
+                className={cn(
+                  "mt-4 rounded-2xl p-3 text-center font-bold",
+                  feedback.ok
+                    ? "bg-success/15 text-success"
+                    : "bg-destructive/15 text-destructive",
+                )}
+              >
+                {feedback.ok
+                  ? `✅ Acertou! ${divProblems[index].dividend} ÷ ${divProblems[index].divisor} = ${divProblems[index].quotient}${divProblems[index].remainder ? ` resto ${divProblems[index].remainder}` : ""}`
+                  : `❌ Resposta certa: ${feedback.ans}${divProblems[index].remainder ? ` (resto ${divProblems[index].remainder})` : ""}`}
+              </div>
+            )}
+          </div>
+        )}
+
         {phase === "done" && (
           <div className="bg-card rounded-3xl p-8 border border-border text-center">
             <div className="text-6xl mb-3">⭐</div>
@@ -266,7 +440,7 @@ function DesafioSemana() {
             </h2>
             <p className="text-muted-foreground mb-4">
               Você acertou <span className="text-success font-bold">{correct}</span> de{" "}
-              {problems.length}.
+              {WEEKLY_TOTAL}.
             </p>
             <div className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-4 py-2 text-sm font-bold text-foreground mb-2">
               ⭐ Selo Semana {week}/{year} desbloqueado
