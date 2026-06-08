@@ -1,4 +1,4 @@
-// Desafio da Semana: gera 10 problemas fixos por semana ISO (mesma sequência
+// Desafio da Semana: gera problemas fixos por semana ISO (mesma sequência
 // para todos os alunos naquela semana) e gerencia selo/streak por aluno.
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,7 +6,17 @@ export interface WeeklyProblem {
   a: number;
   b: number;
   answer: number;
-  options: number[]; // 4 opções
+  options: number[]; // 3 opções
+}
+
+export interface WeeklyDivProblem {
+  dividend: number;
+  divisor: number;
+  quotient: number;
+  remainder: number;
+  options: number[]; // 3 opções para o quociente
+  level: 1 | 2 | 3;
+  levelLabel: string;
 }
 
 export interface WeeklyRecord {
@@ -40,10 +50,12 @@ function mulberry32(seed: number) {
   };
 }
 
-export const WEEKLY_TOTAL = 10;
+export const WEEKLY_MULT_TOTAL = 10;
+export const WEEKLY_DIV_TOTAL = 9; // 3 por nível
+export const WEEKLY_TOTAL = WEEKLY_MULT_TOTAL + WEEKLY_DIV_TOTAL;
+export const WEEKLY_MULT_TIMER = 4; // segundos
 
-// Gera 10 problemas de multiplicação (tabuadas 2 a 9, mult. 0 a 10).
-// Mesma sequência para todos que jogarem na mesma semana.
+// Gera 10 problemas de multiplicação (tabuadas 2 a 9, mult. 0 a 10), 3 opções.
 export function generateWeeklyProblems(year: number, week: number): WeeklyProblem[] {
   const seed = year * 100 + week;
   const rnd = mulberry32(seed);
@@ -51,7 +63,7 @@ export function generateWeeklyProblems(year: number, week: number): WeeklyProble
 
   const problems: WeeklyProblem[] = [];
   const seen = new Set<string>();
-  while (problems.length < WEEKLY_TOTAL) {
+  while (problems.length < WEEKLY_MULT_TOTAL) {
     const a = 2 + rint(8); // 2..9
     const b = rint(11); // 0..10
     const key = `${a}x${b}`;
@@ -59,13 +71,12 @@ export function generateWeeklyProblems(year: number, week: number): WeeklyProble
     seen.add(key);
     const answer = a * b;
     const opts = new Set<number>([answer]);
-    while (opts.size < 4) {
+    while (opts.size < 3) {
       const delta = (rint(6) + 1) * (rnd() < 0.5 ? -1 : 1);
       const cand = Math.max(0, answer + delta);
       if (cand !== answer) opts.add(cand);
     }
     const options = [...opts];
-    // embaralha
     for (let i = options.length - 1; i > 0; i--) {
       const j = rint(i + 1);
       [options[i], options[j]] = [options[j], options[i]];
@@ -73,6 +84,75 @@ export function generateWeeklyProblems(year: number, week: number): WeeklyProble
     problems.push({ a, b, answer, options });
   }
   return problems;
+}
+
+// Gera 9 problemas de divisão (3 por nível) determinísticos pela semana.
+// Nível 1: 3 algarismos no dividendo, divisor 2..9
+// Nível 2: 4 algarismos no dividendo, divisor 2..9
+// Nível 3: quociente contém 0 (intermediário)
+export function generateWeeklyDivProblems(year: number, week: number): WeeklyDivProblem[] {
+  const seed = year * 100 + week + 7777;
+  const rnd = mulberry32(seed);
+  const rint = (n: number) => Math.floor(rnd() * n);
+
+  const out: WeeklyDivProblem[] = [];
+
+  const mkOptions = (q: number): number[] => {
+    const opts = new Set<number>([q]);
+    while (opts.size < 3) {
+      const delta = (rint(5) + 1) * (rnd() < 0.5 ? -1 : 1);
+      const cand = Math.max(0, q + delta);
+      if (cand !== q) opts.add(cand);
+    }
+    const arr = [...opts];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = rint(i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  const makeLevel = (level: 1 | 2 | 3, label: string) => {
+    let tries = 0;
+    while (tries++ < 300) {
+      const divisor = 2 + rint(8);
+      let dividend = 0;
+      if (level === 1) {
+        dividend = 100 + rint(900);
+      } else if (level === 2) {
+        dividend = 1000 + rint(9000);
+      } else {
+        // Quociente com 0 em posição interna
+        const total = 3 + rint(2); // 3 ou 4 dígitos
+        let qStr = String(1 + rint(9));
+        const zeroPos = 1 + rint(total - 2);
+        for (let i = 1; i < total; i++) {
+          qStr += i === zeroPos ? "0" : String(rint(10));
+        }
+        const q = parseInt(qStr, 10);
+        dividend = q * divisor + rint(divisor);
+      }
+      const quotient = Math.floor(dividend / divisor);
+      const remainder = dividend - quotient * divisor;
+      if (level === 3 && !String(quotient).includes("0")) continue;
+      if (quotient < 1) continue;
+      out.push({
+        dividend,
+        divisor,
+        quotient,
+        remainder,
+        options: mkOptions(quotient),
+        level,
+        levelLabel: label,
+      });
+      return;
+    }
+  };
+
+  for (let i = 0; i < 3; i++) makeLevel(1, "3 algarismos");
+  for (let i = 0; i < 3; i++) makeLevel(2, "4 algarismos");
+  for (let i = 0; i < 3; i++) makeLevel(3, "com 0 no quociente");
+  return out;
 }
 
 export async function getWeeklyRecord(
@@ -122,13 +202,11 @@ export async function saveWeeklyRecord(
   if (error) throw error;
 }
 
-// Calcula sequência de semanas consecutivas concluídas, terminando na atual
-// ou na anterior (não exige que a atual já esteja feita).
+// Calcula sequência de semanas consecutivas concluídas.
 export function computeStreak(records: WeeklyRecord[]): number {
   if (records.length === 0) return 0;
   const set = new Set(records.map((r) => `${r.year}-${r.week}`));
   const cur = getISOWeek();
-  // Começa da semana atual; se não tiver, começa da anterior.
   let { year, week } = cur;
   if (!set.has(`${year}-${week}`)) {
     const prev = prevWeek(year, week);
@@ -147,7 +225,6 @@ export function computeStreak(records: WeeklyRecord[]): number {
 
 function prevWeek(year: number, week: number): { year: number; week: number } {
   if (week > 1) return { year, week: week - 1 };
-  // Última semana do ano anterior (52 ou 53). Aproximação suficiente.
   return { year: year - 1, week: weeksInYear(year - 1) };
 }
 
