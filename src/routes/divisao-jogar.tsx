@@ -97,6 +97,11 @@ function PlayDivisao() {
   const [perfectStreak, setPerfectStreak] = useState(0);
   const perfectFlagRef = useRef(true);
   const [showFinish, setShowFinish] = useState(false);
+  // Weekly mode tracking
+  const weeklyIdxRef = useRef(0);
+  const weeklyCorrectRef = useRef(0);
+  const weeklyWrongRef = useRef(0);
+  const [weeklyIdx, setWeeklyIdx] = useState(0);
 
   // Tracking para o histórico no painel do professor
   const [studentId, setStudentId] = useState<string | null>(null);
