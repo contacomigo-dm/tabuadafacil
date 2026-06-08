@@ -16,6 +16,12 @@ import {
   type DivisionPlan,
 } from "@/lib/divisao";
 import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
+import {
+  generateWeeklyDivSetups,
+  saveWeeklyRecord,
+  WEEKLY_DIV_TOTAL,
+  type WeeklyDivSetup,
+} from "@/lib/weekly";
 
 export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
