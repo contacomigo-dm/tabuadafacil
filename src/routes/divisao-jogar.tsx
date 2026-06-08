@@ -48,6 +48,22 @@ function PlayDivisao() {
   // Resolve mode (free vs level) only once. Guard for SSR (no sessionStorage).
   const setup = useMemo(() => {
     const ss = typeof window !== "undefined" ? window.sessionStorage : null;
+    const weekly = ss?.getItem("divWeeklyMode") === "1";
+    if (weekly) {
+      const year = Number(ss?.getItem("weeklyYear") ?? "0");
+      const week = Number(ss?.getItem("weeklyWeek") ?? "0");
+      const setups = generateWeeklyDivSetups(year, week);
+      const first = setups[0];
+      return {
+        mode: "weekly" as const,
+        level: 0,
+        year,
+        week,
+        setups,
+        dividend: first.dividend,
+        divisor: first.divisor,
+      };
+    }
     const free = ss?.getItem("divFreeMode") === "1";
     if (free) {
       const d = Number(ss?.getItem("divFreeDividend") ?? "0");
