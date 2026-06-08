@@ -184,15 +184,33 @@ function PlayDivisao() {
 
   function newProblem() {
     if (setup.mode === "free") {
-      // free mode: just go back to setup screen
       navigate({ to: "/divisao-treino" });
+      return;
+    }
+    if (setup.mode === "weekly") {
+      const nextIdx = weeklyIdxRef.current + 1;
+      const setups = (setup as Extract<typeof setup, { mode: "weekly" }>).setups;
+      if (nextIdx >= setups.length) return; // não chama em modo weekly após o fim
+      const next = setups[nextIdx];
+      weeklyIdxRef.current = nextIdx;
+      setWeeklyIdx(nextIdx);
+      setPlan(buildPlan(next.dividend, next.divisor));
+      setStepIdx(0);
+      setPhase("quotient");
+      setQuotientInput("");
+      setRemainderInput("");
+      setConfirmedQuotient(null);
+      setHistory([]);
+      setQuotientAttempts(0);
+      setRemainderAttempts(0);
+      setHint(null);
+      perfectFlagRef.current = true;
       return;
     }
     const def = (setup as Extract<typeof setup, { mode: "level" }>).def;
     let d: number;
     let s: number;
     let p: DivisionPlan;
-    // avoid trivial division (chunk < divisor for everything → all zeros)
     do {
       d = randomDividend(def.digits);
       s = randomDivisor();
