@@ -9,14 +9,11 @@ export interface WeeklyProblem {
   options: number[]; // 3 opções
 }
 
-export interface WeeklyDivProblem {
+export interface WeeklyDivSetup {
   dividend: number;
   divisor: number;
-  quotient: number;
-  remainder: number;
-  options: number[]; // 3 opções para o quociente
-  level: 1 | 2 | 3;
-  levelLabel: string;
+  digits: number;
+  label: string;
 }
 
 export interface WeeklyRecord {
@@ -50,12 +47,12 @@ function mulberry32(seed: number) {
   };
 }
 
-export const WEEKLY_MULT_TOTAL = 10;
-export const WEEKLY_DIV_TOTAL = 9; // 3 por nível
+export const WEEKLY_MULT_TOTAL = 20;
+export const WEEKLY_DIV_TOTAL = 5;
 export const WEEKLY_TOTAL = WEEKLY_MULT_TOTAL + WEEKLY_DIV_TOTAL;
 export const WEEKLY_MULT_TIMER = 4; // segundos
 
-// Gera 10 problemas de multiplicação (tabuadas 2 a 9, mult. 0 a 10), 3 opções.
+// Gera 20 problemas de multiplicação (tabuadas 2 a 9, mult. 0 a 10), 3 opções.
 export function generateWeeklyProblems(year: number, week: number): WeeklyProblem[] {
   const seed = year * 100 + week;
   const rnd = mulberry32(seed);
@@ -63,7 +60,8 @@ export function generateWeeklyProblems(year: number, week: number): WeeklyProble
 
   const problems: WeeklyProblem[] = [];
   const seen = new Set<string>();
-  while (problems.length < WEEKLY_MULT_TOTAL) {
+  let safety = 0;
+  while (problems.length < WEEKLY_MULT_TOTAL && safety++ < 5000) {
     const a = 2 + rint(8); // 2..9
     const b = rint(11); // 0..10
     const key = `${a}x${b}`;
@@ -86,72 +84,33 @@ export function generateWeeklyProblems(year: number, week: number): WeeklyProble
   return problems;
 }
 
-// Gera 9 problemas de divisão (3 por nível) determinísticos pela semana.
-// Nível 1: 3 algarismos no dividendo, divisor 2..9
-// Nível 2: 4 algarismos no dividendo, divisor 2..9
-// Nível 3: quociente contém 0 (intermediário)
-export function generateWeeklyDivProblems(year: number, week: number): WeeklyDivProblem[] {
+// Gera 5 contas de divisão longa (mesmo formato da aba Divisão),
+// dificuldade crescente: 3, 3, 4, 4, 5 algarismos no dividendo.
+export function generateWeeklyDivSetups(year: number, week: number): WeeklyDivSetup[] {
   const seed = year * 100 + week + 7777;
   const rnd = mulberry32(seed);
   const rint = (n: number) => Math.floor(rnd() * n);
-
-  const out: WeeklyDivProblem[] = [];
-
-  const mkOptions = (q: number): number[] => {
-    const opts = new Set<number>([q]);
-    while (opts.size < 3) {
-      const delta = (rint(5) + 1) * (rnd() < 0.5 ? -1 : 1);
-      const cand = Math.max(0, q + delta);
-      if (cand !== q) opts.add(cand);
-    }
-    const arr = [...opts];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = rint(i + 1);
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  };
-
-  const makeLevel = (level: 1 | 2 | 3, label: string) => {
+  const digitsSeq: number[] = [3, 3, 4, 4, 5];
+  const out: WeeklyDivSetup[] = [];
+  for (const digits of digitsSeq) {
+    let dividend = 0;
+    let divisor = 0;
     let tries = 0;
-    while (tries++ < 300) {
-      const divisor = 2 + rint(8);
-      let dividend = 0;
-      if (level === 1) {
-        dividend = 100 + rint(900);
-      } else if (level === 2) {
-        dividend = 1000 + rint(9000);
-      } else {
-        // Quociente com 0 em posição interna
-        const total = 3 + rint(2); // 3 ou 4 dígitos
-        let qStr = String(1 + rint(9));
-        const zeroPos = 1 + rint(total - 2);
-        for (let i = 1; i < total; i++) {
-          qStr += i === zeroPos ? "0" : String(rint(10));
-        }
-        const q = parseInt(qStr, 10);
-        dividend = q * divisor + rint(divisor);
-      }
-      const quotient = Math.floor(dividend / divisor);
-      const remainder = dividend - quotient * divisor;
-      if (level === 3 && !String(quotient).includes("0")) continue;
-      if (quotient < 1) continue;
-      out.push({
-        dividend,
-        divisor,
-        quotient,
-        remainder,
-        options: mkOptions(quotient),
-        level,
-        levelLabel: label,
-      });
-      return;
+    while (tries++ < 200) {
+      divisor = 2 + rint(8); // 2..9
+      const min = Math.pow(10, digits - 1);
+      const max = Math.pow(10, digits) - 1;
+      dividend = min + Math.floor(rnd() * (max - min + 1));
+      // garantir que a conta não seja trivial
+      if (Math.floor(dividend / divisor) >= 10) break;
     }
-  };
-
-  for (let i = 0; i < 3; i++) makeLevel(1, "3 algarismos");
-  for (let i = 0; i < 3; i++) makeLevel(2, "4 algarismos");
-  for (let i = 0; i < 3; i++) makeLevel(3, "com 0 no quociente");
+    out.push({
+      dividend,
+      divisor,
+      digits,
+      label: `${digits} algarismos`,
+    });
+  }
   return out;
 }
 
