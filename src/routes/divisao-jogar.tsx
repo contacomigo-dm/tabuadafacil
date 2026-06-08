@@ -582,33 +582,46 @@ function PlayDivisao() {
               </div>
             )}
 
-            {phase === "done" && (
-              <div className="text-center">
-                <div className="text-5xl mb-2">🎉</div>
-                <h3 className="text-2xl font-extrabold text-primary">Conta pronta!</h3>
-                <div className="mt-3 bg-primary/10 rounded-xl p-4 text-left">
-                  <div className="font-mono text-lg">
-                    {plan.dividend} ÷ {plan.divisor} ={" "}
-                    <span className="font-bold text-primary">{plan.finalQuotient}</span>
+            {phase === "done" && (() => {
+              const isWeekly = setup.mode === "weekly";
+              const isLastWeekly =
+                isWeekly && weeklyIdxRef.current + 1 >= setup.setups.length;
+              return (
+                <div className="text-center">
+                  <div className="text-5xl mb-2">🎉</div>
+                  <h3 className="text-2xl font-extrabold text-primary">
+                    {isLastWeekly ? "Desafio concluído!" : "Conta pronta!"}
+                  </h3>
+                  <div className="mt-3 bg-primary/10 rounded-xl p-4 text-left">
+                    <div className="font-mono text-lg">
+                      {plan.dividend} ÷ {plan.divisor} ={" "}
+                      <span className="font-bold text-primary">{plan.finalQuotient}</span>
+                    </div>
+                    <div className="font-mono text-sm text-muted-foreground">
+                      resto {plan.finalRemainder}
+                    </div>
                   </div>
-                  <div className="font-mono text-sm text-muted-foreground">
-                    resto {plan.finalRemainder}
-                  </div>
+                  {isLastWeekly ? (
+                    <div className="mt-5 text-sm text-muted-foreground">
+                      Salvando seu selo da semana…
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={newProblem}
+                      className="btn-pop mt-5 w-full h-12 text-base font-bold rounded-xl bg-primary hover:bg-primary/90"
+                    >
+                      ▶ {isWeekly ? `Próxima conta (${weeklyIdx + 2}/${WEEKLY_DIV_TOTAL})` : "Próxima conta"}
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => navigate({ to: isWeekly ? "/desafio-semana" : "/divisao" })}
+                    className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    ← {isWeekly ? "Voltar ao desafio" : "Voltar ao menu"}
+                  </button>
                 </div>
-                <Button
-                  onClick={newProblem}
-                  className="btn-pop mt-5 w-full h-12 text-base font-bold rounded-xl bg-primary hover:bg-primary/90"
-                >
-                  ▶ Próxima conta
-                </Button>
-                <button
-                  onClick={() => navigate({ to: "/divisao" })}
-                  className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
-                >
-                  ← Voltar ao menu
-                </button>
-              </div>
-            )}
+              );
+            })()}
           </aside>
         </div>
       </div>
