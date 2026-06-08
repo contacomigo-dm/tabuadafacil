@@ -16,6 +16,11 @@ import {
   type DivisionPlan,
 } from "@/lib/divisao";
 import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
+import {
+  generateWeeklyDivSetups,
+  saveWeeklyRecord,
+  WEEKLY_DIV_TOTAL,
+} from "@/lib/weekly";
 
 export const Route = createFileRoute("/divisao-jogar")({
   head: () => ({
@@ -42,6 +47,22 @@ function PlayDivisao() {
   // Resolve mode (free vs level) only once. Guard for SSR (no sessionStorage).
   const setup = useMemo(() => {
     const ss = typeof window !== "undefined" ? window.sessionStorage : null;
+    const weekly = ss?.getItem("divWeeklyMode") === "1";
+    if (weekly) {
+      const year = Number(ss?.getItem("weeklyYear") ?? "0");
+      const week = Number(ss?.getItem("weeklyWeek") ?? "0");
+      const setups = generateWeeklyDivSetups(year, week);
+      const first = setups[0];
+      return {
+        mode: "weekly" as const,
+        level: 0,
+        year,
+        week,
+        setups,
+        dividend: first.dividend,
+        divisor: first.divisor,
+      };
+    }
     const free = ss?.getItem("divFreeMode") === "1";
     if (free) {
       const d = Number(ss?.getItem("divFreeDividend") ?? "0");
@@ -75,6 +96,11 @@ function PlayDivisao() {
   const [perfectStreak, setPerfectStreak] = useState(0);
   const perfectFlagRef = useRef(true);
   const [showFinish, setShowFinish] = useState(false);
+  // Weekly mode tracking
+  const weeklyIdxRef = useRef(0);
+  const weeklyCorrectRef = useRef(0);
+  const weeklyWrongRef = useRef(0);
+  const [weeklyIdx, setWeeklyIdx] = useState(0);
 
   // Tracking para o histórico no painel do professor
   const [studentId, setStudentId] = useState<string | null>(null);
@@ -157,15 +183,33 @@ function PlayDivisao() {
 
   function newProblem() {
     if (setup.mode === "free") {
-      // free mode: just go back to setup screen
       navigate({ to: "/divisao-treino" });
+      return;
+    }
+    if (setup.mode === "weekly") {
+      const nextIdx = weeklyIdxRef.current + 1;
+      const setups = (setup as Extract<typeof setup, { mode: "weekly" }>).setups;
+      if (nextIdx >= setups.length) return; // não chama em modo weekly após o fim
+      const next = setups[nextIdx];
+      weeklyIdxRef.current = nextIdx;
+      setWeeklyIdx(nextIdx);
+      setPlan(buildPlan(next.dividend, next.divisor));
+      setStepIdx(0);
+      setPhase("quotient");
+      setQuotientInput("");
+      setRemainderInput("");
+      setConfirmedQuotient(null);
+      setHistory([]);
+      setQuotientAttempts(0);
+      setRemainderAttempts(0);
+      setHint(null);
+      perfectFlagRef.current = true;
       return;
     }
     const def = (setup as Extract<typeof setup, { mode: "level" }>).def;
     let d: number;
     let s: number;
     let p: DivisionPlan;
-    // avoid trivial division (chunk < divisor for everything → all zeros)
     do {
       d = randomDividend(def.digits);
       s = randomDivisor();
@@ -308,6 +352,28 @@ function PlayDivisao() {
           }
           setShowFinish(true);
         }
+      } else if (setup.mode === "weekly") {
+        if (wasPerfect) weeklyCorrectRef.current += 1;
+        else weeklyWrongRef.current += 1;
+        const isLast = weeklyIdxRef.current + 1 >= setup.setups.length;
+        if (isLast && studentId) {
+          const ss = sessionStorage;
+          const mc = Number(ss.getItem("weeklyMultCorrect") ?? "0");
+          const mw = Number(ss.getItem("weeklyMultWrong") ?? "0");
+          const totalCorrect = mc + weeklyCorrectRef.current;
+          const totalWrong = mw + weeklyWrongRef.current;
+          saveWeeklyRecord(studentId, setup.year, setup.week, totalCorrect, totalWrong)
+            .catch((e) => console.error(e))
+            .finally(() => {
+              ss.removeItem("divWeeklyMode");
+              ss.removeItem("weeklyYear");
+              ss.removeItem("weeklyWeek");
+              ss.removeItem("weeklyMultCorrect");
+              ss.removeItem("weeklyMultWrong");
+              ss.setItem("weeklyJustFinished", "1");
+              setTimeout(() => navigate({ to: "/desafio-semana" }), 800);
+            });
+        }
       }
     } else {
       setStepIdx(next);
@@ -345,7 +411,7 @@ function PlayDivisao() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-2 sm:mb-4">
           <button
-            onClick={() => navigate({ to: "/divisao" })}
+            onClick={() => navigate({ to: setup.mode === "weekly" ? "/desafio-semana" : "/divisao" })}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             ← Sair
@@ -361,11 +427,20 @@ function PlayDivisao() {
                   )}
                 </div>
               </>
+            ) : setup.mode === "weekly" ? (
+              <>
+                <div>🏆 Desafio da Semana</div>
+                <div className="text-xs">
+                  Conta <span className="font-bold text-primary">{weeklyIdx + 1}/{WEEKLY_DIV_TOTAL}</span>{" "}
+                  · {setup.setups[weeklyIdx]?.label}
+                </div>
+              </>
             ) : (
               <>Treino livre</>
             )}
           </div>
         </div>
+
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-3 lg:gap-6">
           {/* Conta armada */}
@@ -506,33 +581,48 @@ function PlayDivisao() {
               </div>
             )}
 
-            {phase === "done" && (
-              <div className="text-center">
-                <div className="text-5xl mb-2">🎉</div>
-                <h3 className="text-2xl font-extrabold text-primary">Conta pronta!</h3>
-                <div className="mt-3 bg-primary/10 rounded-xl p-4 text-left">
-                  <div className="font-mono text-lg">
-                    {plan.dividend} ÷ {plan.divisor} ={" "}
-                    <span className="font-bold text-primary">{plan.finalQuotient}</span>
+            {phase === "done" && (() => {
+              const weeklySetup =
+                setup.mode === "weekly" ? setup : null;
+              const isLastWeekly =
+                weeklySetup !== null &&
+                weeklyIdxRef.current + 1 >= weeklySetup.setups.length;
+              return (
+                <div className="text-center">
+                  <div className="text-5xl mb-2">🎉</div>
+                  <h3 className="text-2xl font-extrabold text-primary">
+                    {isLastWeekly ? "Desafio concluído!" : "Conta pronta!"}
+                  </h3>
+                  <div className="mt-3 bg-primary/10 rounded-xl p-4 text-left">
+                    <div className="font-mono text-lg">
+                      {plan.dividend} ÷ {plan.divisor} ={" "}
+                      <span className="font-bold text-primary">{plan.finalQuotient}</span>
+                    </div>
+                    <div className="font-mono text-sm text-muted-foreground">
+                      resto {plan.finalRemainder}
+                    </div>
                   </div>
-                  <div className="font-mono text-sm text-muted-foreground">
-                    resto {plan.finalRemainder}
-                  </div>
+                  {isLastWeekly ? (
+                    <div className="mt-5 text-sm text-muted-foreground">
+                      Salvando seu selo da semana…
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={newProblem}
+                      className="btn-pop mt-5 w-full h-12 text-base font-bold rounded-xl bg-primary hover:bg-primary/90"
+                    >
+                      ▶ {weeklySetup ? `Próxima conta (${weeklyIdx + 2}/${WEEKLY_DIV_TOTAL})` : "Próxima conta"}
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => navigate({ to: weeklySetup ? "/desafio-semana" : "/divisao" })}
+                    className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    ← {weeklySetup ? "Voltar ao desafio" : "Voltar ao menu"}
+                  </button>
                 </div>
-                <Button
-                  onClick={newProblem}
-                  className="btn-pop mt-5 w-full h-12 text-base font-bold rounded-xl bg-primary hover:bg-primary/90"
-                >
-                  ▶ Próxima conta
-                </Button>
-                <button
-                  onClick={() => navigate({ to: "/divisao" })}
-                  className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
-                >
-                  ← Voltar ao menu
-                </button>
-              </div>
-            )}
+              );
+            })()}
           </aside>
         </div>
       </div>
