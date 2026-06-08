@@ -9,12 +9,10 @@ import {
   WEEKLY_MULT_TOTAL,
   WEEKLY_TOTAL,
   computeStreak,
-  generateWeeklyDivProblems,
   generateWeeklyProblems,
   getISOWeek,
   getWeeklyRecord,
   listWeeklyRecords,
-  saveWeeklyRecord,
   type WeeklyRecord,
 } from "@/lib/weekly";
 import { logAttempt } from "@/lib/api";
@@ -26,7 +24,7 @@ export const Route = createFileRoute("/desafio-semana")({
   component: DesafioSemana,
 });
 
-type Phase = "intro" | "mult" | "div" | "done";
+type Phase = "intro" | "mult" | "done";
 
 function DesafioSemana() {
   const navigate = useNavigate();
@@ -46,7 +44,6 @@ function DesafioSemana() {
 
   const { year, week } = useMemo(() => getISOWeek(), []);
   const multProblems = useMemo(() => generateWeeklyProblems(year, week), [year, week]);
-  const divProblems = useMemo(() => generateWeeklyDivProblems(year, week), [year, week]);
 
   useEffect(() => {
     const id = sessionStorage.getItem("studentId");
@@ -63,6 +60,15 @@ function DesafioSemana() {
       const all = await listWeeklyRecords(id);
       setHistory(all);
       setStreak(computeStreak(all));
+      // Se acabou de voltar da divisão semanal, mostra a tela "done"
+      if (sessionStorage.getItem("weeklyJustFinished") === "1") {
+        sessionStorage.removeItem("weeklyJustFinished");
+        if (rec) {
+          setCorrect(rec.correct_count);
+          setWrong(rec.wrong_count);
+          setPhase("done");
+        }
+      }
     })().catch(() => {});
   }, [navigate, year, week]);
 
@@ -75,22 +81,17 @@ function DesafioSemana() {
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 
-  const finishChallenge = useCallback(
-    async (finalCorrect: number, finalWrong: number) => {
-      if (!studentId) return;
-      try {
-        await saveWeeklyRecord(studentId, year, week, finalCorrect, finalWrong);
-        const all = await listWeeklyRecords(studentId);
-        setHistory(all);
-        setStreak(computeStreak(all));
-        setExistingRecord(all.find((r) => r.year === year && r.week === week) ?? null);
-      } catch (e) {
-        console.error(e);
-        toast.error("Erro ao salvar o desafio");
-      }
-      setPhase("done");
+  const goToWeeklyDivision = useCallback(
+    (multCorrect: number, multWrong: number) => {
+      sessionStorage.setItem("divWeeklyMode", "1");
+      sessionStorage.setItem("weeklyYear", String(year));
+      sessionStorage.setItem("weeklyWeek", String(week));
+      sessionStorage.setItem("weeklyMultCorrect", String(multCorrect));
+      sessionStorage.setItem("weeklyMultWrong", String(multWrong));
+      sessionStorage.removeItem("divFreeMode");
+      navigate({ to: "/divisao-jogar" });
     },
-    [studentId, year, week],
+    [navigate, year, week],
   );
 
   const handleMultAnswer = useCallback(
@@ -101,8 +102,10 @@ function DesafioSemana() {
       const p = multProblems[index];
       const ok = opt === p.answer;
       setFeedback({ ok, ans: p.answer });
-      if (ok) setCorrect((c) => c + 1);
-      else setWrong((w) => w + 1);
+      const newCorrect = correct + (ok ? 1 : 0);
+      const newWrong = wrong + (ok ? 0 : 1);
+      if (ok) setCorrect(newCorrect);
+      else setWrong(newWrong);
 
       logAttempt({
         studentId,
@@ -115,11 +118,9 @@ function DesafioSemana() {
       setTimeout(() => {
         const next = index + 1;
         if (next >= multProblems.length) {
-          // mudar para divisão
-          setIndex(0);
-          setFeedback(null);
-          setLocked(false);
-          setPhase("div");
+          // mult terminou → vai para divisão longa
+          toast.success("Multiplicação concluída! Agora a divisão longa.");
+          goToWeeklyDivision(newCorrect, newWrong);
         } else {
           setIndex(next);
           setFeedback(null);
@@ -128,7 +129,7 @@ function DesafioSemana() {
         }
       }, 1100);
     },
-    [locked, studentId, multProblems, index, clearTimer],
+    [locked, studentId, multProblems, index, correct, wrong, clearTimer, goToWeeklyDivision],
   );
 
   // Timer da multiplicação
@@ -149,37 +150,6 @@ function DesafioSemana() {
     return () => clearTimer();
   }, [phase, index, locked, clearTimer, handleMultAnswer]);
 
-  const handleDivAnswer = (opt: number) => {
-    if (locked || !studentId) return;
-    setLocked(true);
-    const p = divProblems[index];
-    const ok = opt === p.quotient;
-    setFeedback({ ok, ans: p.quotient });
-    const newCorrect = correct + (ok ? 1 : 0);
-    const newWrong = wrong + (ok ? 0 : 1);
-    if (ok) setCorrect(newCorrect);
-    else setWrong(newWrong);
-
-    logAttempt({
-      studentId,
-      tableNum: p.divisor,
-      multiplier: p.quotient,
-      correct: ok,
-      questionType: "weekly_division",
-    }).catch(() => {});
-
-    setTimeout(() => {
-      const next = index + 1;
-      if (next >= divProblems.length) {
-        void finishChallenge(newCorrect, newWrong);
-      } else {
-        setIndex(next);
-        setFeedback(null);
-        setLocked(false);
-      }
-    }, 1400);
-  };
-
   const start = () => {
     setIndex(0);
     setCorrect(0);
@@ -197,8 +167,7 @@ function DesafioSemana() {
     );
   }
 
-  const totalDone =
-    phase === "mult" ? index : phase === "div" ? WEEKLY_MULT_TOTAL + index : 0;
+  const totalDone = phase === "mult" ? index : 0;
 
   return (
     <main className="min-h-screen leaf-bg px-4 py-6">
@@ -221,7 +190,7 @@ function DesafioSemana() {
             Desafio da Semana
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Semana {week} de {year} · {WEEKLY_MULT_TOTAL} multiplicações + {WEEKLY_DIV_TOTAL} divisões
+            Semana {week} de {year} · {WEEKLY_MULT_TOTAL} multiplicações + {WEEKLY_DIV_TOTAL} divisões longas
           </p>
           <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/30 px-3 py-1 text-sm font-bold text-primary">
@@ -254,8 +223,8 @@ function DesafioSemana() {
                   para responder, 3 opções.
                 </p>
                 <p>
-                  <b>Parte 2 — Divisão:</b> {WEEKLY_DIV_TOTAL} contas (3 fáceis com 3 algarismos, 3
-                  médias com 4 algarismos e 3 difíceis com 0 no quociente). Sem temporizador.
+                  <b>Parte 2 — Divisão longa:</b> {WEEKLY_DIV_TOTAL} contas armadas passo a passo
+                  (dificuldade crescente: 3, 3, 4, 4 e 5 algarismos). Sem temporizador.
                 </p>
               </div>
             )}
@@ -330,7 +299,7 @@ function DesafioSemana() {
               {multProblems[index].a} × {multProblems[index].b}
             </div>
             <div className="grid gap-3">
-              {multProblems[index].options.map((opt) => (
+              {multProblems[index].options.map((opt: number) => (
                 <Button
                   key={opt}
                   onClick={() => handleMultAnswer(opt)}
@@ -359,74 +328,6 @@ function DesafioSemana() {
                 )}
               >
                 {feedback.ok ? "✅ Acertou!" : `❌ Resposta certa: ${feedback.ans}`}
-              </div>
-            )}
-          </div>
-        )}
-
-        {phase === "div" && divProblems[index] && (
-          <div className="bg-card rounded-3xl p-6 border border-border shadow-[var(--shadow-soft)]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-muted-foreground">
-                ➗ Divisão {index + 1}/{WEEKLY_DIV_TOTAL} · Geral {totalDone + 1}/{WEEKLY_TOTAL}
-              </span>
-              <span className="text-sm font-semibold">
-                <span className="text-success">{correct} ✓</span>{" "}
-                <span className="text-warning">{wrong} ✗</span>
-              </span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden mb-4">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${(totalDone / WEEKLY_TOTAL) * 100}%` }}
-              />
-            </div>
-            <div className="text-center mb-3">
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 border border-accent/40 px-3 py-1 text-xs font-bold text-foreground">
-                Nível {divProblems[index].level} · {divProblems[index].levelLabel}
-              </span>
-            </div>
-            <p className="text-center text-sm text-muted-foreground font-semibold uppercase tracking-wider mb-2">
-              Qual o quociente?
-            </p>
-            <div className="text-center text-5xl sm:text-6xl font-extrabold text-foreground mb-2">
-              {divProblems[index].dividend} ÷ {divProblems[index].divisor}
-            </div>
-            <p className="text-center text-xs text-muted-foreground mb-6">
-              (sem pressa — pode rabiscar no caderno!)
-            </p>
-            <div className="grid gap-3">
-              {divProblems[index].options.map((opt) => (
-                <Button
-                  key={opt}
-                  onClick={() => handleDivAnswer(opt)}
-                  disabled={locked}
-                  className={cn(
-                    "btn-pop h-16 text-2xl font-bold rounded-2xl",
-                    locked && opt === divProblems[index].quotient && "bg-success hover:bg-success",
-                    locked &&
-                      feedback &&
-                      !feedback.ok &&
-                      opt !== divProblems[index].quotient &&
-                      "bg-muted text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  {opt}
-                </Button>
-              ))}
-            </div>
-            {feedback && (
-              <div
-                className={cn(
-                  "mt-4 rounded-2xl p-3 text-center font-bold",
-                  feedback.ok
-                    ? "bg-success/15 text-success"
-                    : "bg-destructive/15 text-destructive",
-                )}
-              >
-                {feedback.ok
-                  ? `✅ Acertou! ${divProblems[index].dividend} ÷ ${divProblems[index].divisor} = ${divProblems[index].quotient}${divProblems[index].remainder ? ` resto ${divProblems[index].remainder}` : ""}`
-                  : `❌ Resposta certa: ${feedback.ans}${divProblems[index].remainder ? ` (resto ${divProblems[index].remainder})` : ""}`}
               </div>
             )}
           </div>
