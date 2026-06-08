@@ -582,9 +582,11 @@ function PlayDivisao() {
             )}
 
             {phase === "done" && (() => {
-              const isWeekly = setup.mode === "weekly";
+              const weeklySetup =
+                setup.mode === "weekly" ? setup : null;
               const isLastWeekly =
-                isWeekly && weeklyIdxRef.current + 1 >= setup.setups.length;
+                weeklySetup !== null &&
+                weeklyIdxRef.current + 1 >= weeklySetup.setups.length;
               return (
                 <div className="text-center">
                   <div className="text-5xl mb-2">🎉</div>
@@ -609,14 +611,14 @@ function PlayDivisao() {
                       onClick={newProblem}
                       className="btn-pop mt-5 w-full h-12 text-base font-bold rounded-xl bg-primary hover:bg-primary/90"
                     >
-                      ▶ {isWeekly ? `Próxima conta (${weeklyIdx + 2}/${WEEKLY_DIV_TOTAL})` : "Próxima conta"}
+                      ▶ {weeklySetup ? `Próxima conta (${weeklyIdx + 2}/${WEEKLY_DIV_TOTAL})` : "Próxima conta"}
                     </Button>
                   )}
                   <button
-                    onClick={() => navigate({ to: isWeekly ? "/desafio-semana" : "/divisao" })}
+                    onClick={() => navigate({ to: weeklySetup ? "/desafio-semana" : "/divisao" })}
                     className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
                   >
-                    ← {isWeekly ? "Voltar ao desafio" : "Voltar ao menu"}
+                    ← {weeklySetup ? "Voltar ao desafio" : "Voltar ao menu"}
                   </button>
                 </div>
               );
