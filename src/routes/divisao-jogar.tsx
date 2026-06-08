@@ -412,7 +412,7 @@ function PlayDivisao() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-2 sm:mb-4">
           <button
-            onClick={() => navigate({ to: "/divisao" })}
+            onClick={() => navigate({ to: setup.mode === "weekly" ? "/desafio-semana" : "/divisao" })}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             ← Sair
@@ -428,11 +428,20 @@ function PlayDivisao() {
                   )}
                 </div>
               </>
+            ) : setup.mode === "weekly" ? (
+              <>
+                <div>🏆 Desafio da Semana</div>
+                <div className="text-xs">
+                  Conta <span className="font-bold text-primary">{weeklyIdx + 1}/{WEEKLY_DIV_TOTAL}</span>{" "}
+                  · {setup.setups[weeklyIdx]?.label}
+                </div>
+              </>
             ) : (
               <>Treino livre</>
             )}
           </div>
         </div>
+
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-3 lg:gap-6">
           {/* Conta armada */}
