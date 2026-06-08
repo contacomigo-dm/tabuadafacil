@@ -353,6 +353,28 @@ function PlayDivisao() {
           }
           setShowFinish(true);
         }
+      } else if (setup.mode === "weekly") {
+        if (wasPerfect) weeklyCorrectRef.current += 1;
+        else weeklyWrongRef.current += 1;
+        const isLast = weeklyIdxRef.current + 1 >= setup.setups.length;
+        if (isLast && studentId) {
+          const ss = sessionStorage;
+          const mc = Number(ss.getItem("weeklyMultCorrect") ?? "0");
+          const mw = Number(ss.getItem("weeklyMultWrong") ?? "0");
+          const totalCorrect = mc + weeklyCorrectRef.current;
+          const totalWrong = mw + weeklyWrongRef.current;
+          saveWeeklyRecord(studentId, setup.year, setup.week, totalCorrect, totalWrong)
+            .catch((e) => console.error(e))
+            .finally(() => {
+              ss.removeItem("divWeeklyMode");
+              ss.removeItem("weeklyYear");
+              ss.removeItem("weeklyWeek");
+              ss.removeItem("weeklyMultCorrect");
+              ss.removeItem("weeklyMultWrong");
+              ss.setItem("weeklyJustFinished", "1");
+              setTimeout(() => navigate({ to: "/desafio-semana" }), 800);
+            });
+        }
       }
     } else {
       setStepIdx(next);
