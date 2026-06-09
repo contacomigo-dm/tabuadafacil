@@ -415,12 +415,17 @@ function TeacherPage() {
 function StudentDetail({
   student,
   stats,
+  weeklyRecords,
 }: {
   student: Student;
   stats: Awaited<ReturnType<typeof getStudentStats>> | null;
+  weeklyRecords?: WeeklyRecord[] | null;
 }) {
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
+  const { year, week } = getISOWeek();
+  const currentWeekRecord = weeklyRecords?.find((r) => r.year === year && r.week === week);
+  const streak = weeklyRecords ? computeStreak(weeklyRecords) : 0;
 
   return (
     <div className="space-y-4">
