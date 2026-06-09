@@ -84,9 +84,11 @@ function TeacherPage() {
   useEffect(() => {
     if (!selected) {
       setStats(null);
+      setWeeklyRecords(null);
       return;
     }
     getStudentStats(selected.id).then(setStats).catch(() => {});
+    listWeeklyRecords(selected.id).then(setWeeklyRecords).catch(() => {});
   }, [selected]);
 
   const handleLogin = async (e: React.FormEvent) => {
