@@ -3,13 +3,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  verifyStudentPassword,
-  setStudentPassword,
+  studentLogin,
+  studentSetPasswordFirstTime,
+  studentResetWithSecurity,
   validatePasswordStrength,
   validateBirthYear,
   validateFavoriteColor,
   validateFavoriteSubject,
-  verifySecurityAnswers,
   listStudentsByEnrollment,
   findStudentByUsername,
   getSchoolCode,
