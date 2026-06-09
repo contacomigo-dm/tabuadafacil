@@ -37,6 +37,7 @@ function TeacherPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState<Student | null>(null);
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getStudentStats>> | null>(null);
+  const [weeklyRecords, setWeeklyRecords] = useState<WeeklyRecord[] | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [loading, setLoading] = useState(false);
