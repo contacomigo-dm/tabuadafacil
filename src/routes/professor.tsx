@@ -351,7 +351,13 @@ function TeacherPage() {
                                       e.stopPropagation();
                                       if (!confirm(`Resetar a senha de "${s.first_name}"? O aluno precisará cadastrar uma nova senha (e um novo LOGIN com o ano de nascimento) no próximo acesso.`)) return;
                                       try {
-                                        await clearStudentPassword(s.id);
+                                        const ok = await teacherResetStudentPassword(s.id);
+                                        if (!ok) {
+                                          toast.error("Sessão expirada. Faça login novamente.");
+                                          clearTeacherToken();
+                                          setAuthed(false);
+                                          return;
+                                        }
                                         setStudents((prev) =>
                                           prev.map((x) =>
                                             x.id === s.id
