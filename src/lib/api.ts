@@ -1,13 +1,24 @@
 // Data access layer wrapping Supabase queries for students/sessions/attempts.
+// Sensitive operations (login, password set/reset, teacher auth) go through
+// edge functions so password hashes and security answers never reach the
+// browser.
 import { supabase } from "@/integrations/supabase/client";
+
+// Safe student columns readable by anon. Sensitive fields (password_hash,
+// birth_year, favorite_color, favorite_subject) are server-only.
+const SAFE_COLS =
+  "id, first_name, username, current_level, best_streak, current_streak, total_correct, total_wrong, grade, class_name, shift, created_at, updated_at";
 
 export interface Student {
   id: string;
   first_name: string;
   username: string | null;
-  birth_year: number | null;
-  favorite_color: string | null;
-  favorite_subject: string | null;
+  // Sensitive fields — not selected from the browser. Kept optional so the
+  // type still compiles where callers pass through a Student object.
+  birth_year?: number | null;
+  favorite_color?: string | null;
+  favorite_subject?: string | null;
+  password_hash?: string | null;
   current_level: number;
   best_streak: number;
   current_streak: number;
@@ -16,7 +27,6 @@ export interface Student {
   grade: string | null;
   class_name: string | null;
   shift: string | null;
-  password_hash: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +56,6 @@ export function validateFavoriteSubject(s: string | null | undefined): string | 
   return null;
 }
 
-// Gera login a partir do nome completo: "joão pedro sousa da silva" → "jpss".
 const STOP_WORDS = new Set(["da", "de", "di", "do", "du", "das", "dos", "e"]);
 export function buildUsernameBase(fullName: string): string {
   return fullName
@@ -59,65 +68,11 @@ export function buildUsernameBase(fullName: string): string {
     .join("");
 }
 
-// Encontra um username livre. Quando birthYear é informado, o LOGIN é
-// "iniciais + ano (4 dígitos)", ex.: "jpss2010". Em caso de colisão (raro),
-// anexa um sufixo numérico.
-export async function pickAvailableUsername(
-  fullName: string,
-  birthYear?: number | null,
-  excludeId?: string,
-): Promise<string> {
-  const base = buildUsernameBase(fullName) || "aluno";
-  const yearSuffix = birthYear && birthYear > 0 ? String(birthYear) : "";
-  const root = `${base}${yearSuffix}`;
-  for (let i = 1; i < 999; i++) {
-    const candidate = i === 1 ? root : `${root}-${i}`;
-    let q = supabase.from("students").select("id").ilike("username", candidate);
-    if (excludeId) q = q.neq("id", excludeId);
-    const { data } = await q.maybeSingle();
-    if (!data) return candidate;
-  }
-  return `${root}-${Date.now()}`;
-}
-
 export function validateBirthYear(y: number | null | undefined): string | null {
   if (!y || !Number.isInteger(y)) return "Informe o ano de nascimento (4 dígitos)";
   const now = new Date().getFullYear();
   if (y < 1930 || y > now) return "Ano de nascimento inválido";
   return null;
-}
-
-export async function findStudentByUsername(username: string): Promise<Student | null> {
-  const u = username.trim();
-  if (!u) return null;
-  const { data } = await supabase
-    .from("students")
-    .select("*")
-    .ilike("username", u)
-    .maybeSingle();
-  return (data as Student) ?? null;
-}
-
-export async function getSchoolCode(): Promise<string> {
-  const { data } = await supabase
-    .from("teacher_settings")
-    .select("school_code")
-    .eq("id", 1)
-    .single();
-  return (data?.school_code as string) ?? "15059260";
-}
-
-// Hash com salt baseado no nome (suficiente para um app escolar; senhas
-// nunca trafegam em claro fora da máquina do aluno).
-// Senha é case-insensitive: convertemos para minúsculas antes do hash.
-async function hashPassword(name: string, password: string): Promise<string> {
-  const salt = name.trim().toLowerCase();
-  const pw = password.toLowerCase();
-  const data = new TextEncoder().encode(`tabuada:${salt}:${pw}`);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 export function validatePasswordStrength(pw: string): string | null {
@@ -127,12 +82,187 @@ export function validatePasswordStrength(pw: string): string | null {
   return null;
 }
 
+// --- Edge function helpers --------------------------------------------------
+
+async function callFn<T>(name: string, payload: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>(name, { body: payload });
+  if (error) throw error;
+  return data as T;
+}
+
+// --- Teacher auth -----------------------------------------------------------
+
+const TEACHER_TOKEN_KEY = "teacherToken";
+
+export function getTeacherToken(): string | null {
+  if (typeof sessionStorage === "undefined") return null;
+  return sessionStorage.getItem(TEACHER_TOKEN_KEY);
+}
+
+export function clearTeacherToken() {
+  sessionStorage.removeItem(TEACHER_TOKEN_KEY);
+  sessionStorage.removeItem("teacherAuthed");
+}
+
+export async function teacherLogin(password: string): Promise<string | null> {
+  try {
+    const res = await callFn<{ token?: string; error?: string }>("teacher-auth", {
+      action: "login",
+      password,
+    });
+    if (res?.token) {
+      sessionStorage.setItem(TEACHER_TOKEN_KEY, res.token);
+      return res.token;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function teacherVerify(token: string): Promise<boolean> {
+  try {
+    const res = await callFn<{ ok?: boolean }>("teacher-auth", { action: "verify", token });
+    return !!res?.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function teacherChangePassword(currentPassword: string, newPassword: string): Promise<boolean> {
+  const token = getTeacherToken();
+  if (!token) return false;
+  try {
+    const res = await callFn<{ ok?: boolean; error?: string }>("teacher-auth", {
+      action: "change_password",
+      token,
+      currentPassword,
+      newPassword,
+    });
+    return !!res?.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function teacherResetStudentPassword(studentId: string): Promise<boolean> {
+  const token = getTeacherToken();
+  if (!token) return false;
+  try {
+    const res = await callFn<{ ok?: boolean }>("teacher-auth", {
+      action: "reset_student",
+      token,
+      studentId,
+    });
+    return !!res?.ok;
+  } catch {
+    return false;
+  }
+}
+
+// --- Student auth -----------------------------------------------------------
+
+/** Server-side login: returns the safe student record on success, null otherwise. */
+export async function studentLogin(username: string, password: string): Promise<Student | null> {
+  try {
+    const res = await callFn<{ student?: Student; error?: string }>("student-auth", {
+      action: "login",
+      username,
+      password,
+    });
+    return res?.student ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** First-time password set for an enrolled student. */
+export async function studentSetPasswordFirstTime(args: {
+  firstName: string;
+  grade: string | null;
+  className: string | null;
+  shift: string | null;
+  password: string;
+  birthYear: number;
+  favoriteColor: string;
+  favoriteSubject: string;
+}): Promise<string> {
+  const res = await callFn<{ username?: string; error?: string }>("student-auth", {
+    action: "set_password_first_time",
+    ...args,
+  });
+  if (!res?.username) throw new Error(res?.error ?? "set_password_failed");
+  return res.username;
+}
+
+/** Forgot-password flow: verifies security answers server-side. */
+export async function studentResetWithSecurity(args: {
+  firstName: string;
+  grade: string | null;
+  className: string | null;
+  shift: string | null;
+  newPassword: string;
+  birthYear: number;
+  favoriteColor: string;
+  favoriteSubject: string;
+}): Promise<string> {
+  const res = await callFn<{ username?: string; error?: string }>("student-auth", {
+    action: "reset_password_with_security",
+    ...args,
+  });
+  if (!res?.username) throw new Error(res?.error ?? "reset_failed");
+  return res.username;
+}
+
+export async function createVisitor(
+  fullName: string,
+  password: string,
+  birthYear: number,
+  favoriteColor: string,
+  favoriteSubject: string,
+): Promise<{ student: Student; username: string }> {
+  const res = await callFn<{ student?: Student; username?: string; error?: string }>("student-auth", {
+    action: "create_visitor",
+    fullName, password, birthYear, favoriteColor, favoriteSubject,
+  });
+  if (!res?.student || !res.username) throw new Error(res?.error ?? "create_visitor_failed");
+  return { student: res.student, username: res.username };
+}
+
+// --- Other data access (safe columns only) ---------------------------------
+
+export async function findStudentByUsername(username: string): Promise<Student | null> {
+  const u = username.trim();
+  if (!u) return null;
+  const { data } = await supabase
+    .from("students")
+    .select(SAFE_COLS)
+    .ilike("username", u)
+    .maybeSingle();
+  return (data as Student | null) ?? null;
+}
+
+export async function findStudentByName(firstName: string): Promise<Student | null> {
+  const name = firstName.trim();
+  const { data } = await supabase
+    .from("students")
+    .select(SAFE_COLS)
+    .ilike("first_name", name)
+    .maybeSingle();
+  return (data as Student | null) ?? null;
+}
+
+export async function getSchoolCode(): Promise<string> {
+  const { data } = await supabase.from("school_info").select("school_code").maybeSingle();
+  return (data?.school_code as string) ?? "15059260";
+}
+
 export async function listStudentsByEnrollment(
   grade: string,
   className: string | null,
   shift: string | null,
 ): Promise<Student[]> {
-  let q = supabase.from("students").select("*").eq("grade", grade);
+  let q = supabase.from("students").select(SAFE_COLS).eq("grade", grade);
   if (className) q = q.eq("class_name", className);
   else q = q.is("class_name", null);
   if (shift) q = q.eq("shift", shift);
@@ -155,7 +285,6 @@ export async function createStudentsRoster(
   );
   if (clean.length === 0) return { created: 0, skipped: [] };
 
-  // Verifica nomes já existentes (case-insensitive) na mesma turma para evitar duplicatas
   const existing = await listStudentsByEnrollment(
     enrollment.grade ?? "",
     enrollment.class_name ?? null,
@@ -174,143 +303,10 @@ export async function createStudentsRoster(
   return { created: toInsert.length, skipped };
 }
 
-export async function findStudentByName(firstName: string): Promise<Student | null> {
-  const name = firstName.trim();
-  const { data } = await supabase
-    .from("students")
-    .select("*")
-    .ilike("first_name", name)
-    .maybeSingle();
-  return (data as Student) ?? null;
-}
-
-export async function verifyStudentPassword(
-  student: Student,
-  password: string,
-): Promise<boolean> {
-  if (!student.password_hash) return false;
-  const h = await hashPassword(student.first_name, password);
-  return h === student.password_hash;
-}
-
 export interface SecurityAnswers {
   birthYear: number;
   favoriteColor: string;
   favoriteSubject: string;
-}
-
-export async function setStudentPassword(
-  student: Student,
-  password: string,
-  birthYear?: number | null,
-  security?: { favoriteColor?: string | null; favoriteSubject?: string | null },
-): Promise<string> {
-  const hash = await hashPassword(student.first_name, password);
-  const effectiveYear = birthYear ?? student.birth_year ?? null;
-  const needsNewLogin =
-    !student.username || student.username.trim().length === 0 ||
-    (birthYear != null && birthYear !== student.birth_year);
-  const username = needsNewLogin
-    ? await pickAvailableUsername(student.first_name, effectiveYear, student.id)
-    : student.username!;
-  const patch: {
-    password_hash: string;
-    username: string;
-    updated_at: string;
-    birth_year?: number;
-    favorite_color?: string;
-    favorite_subject?: string;
-  } = {
-    password_hash: hash,
-    username,
-    updated_at: new Date().toISOString(),
-  };
-  if (birthYear != null) patch.birth_year = birthYear;
-  if (security?.favoriteColor) patch.favorite_color = security.favoriteColor.toLowerCase();
-  if (security?.favoriteSubject) patch.favorite_subject = security.favoriteSubject;
-  const { error } = await supabase.from("students").update(patch).eq("id", student.id);
-  if (error) throw error;
-  return username;
-}
-
-// Verifica as 3 perguntas de segurança contra o cadastro do aluno.
-// Retorna true APENAS se todas baterem. Se o aluno ainda não tiver
-// favorite_color / favorite_subject registrados (legado), aceita
-// apenas o ano de nascimento como confirmação mínima.
-export function verifySecurityAnswers(student: Student, ans: SecurityAnswers): boolean {
-  const yrOk = student.birth_year === ans.birthYear;
-  const hasColor = !!student.favorite_color;
-  const hasSubject = !!student.favorite_subject;
-  if (!hasColor && !hasSubject) {
-    // Legado: aluno cadastrou senha antes das perguntas existirem
-    return yrOk;
-  }
-  const colorOk = !hasColor || student.favorite_color === ans.favoriteColor.toLowerCase();
-  const subjectOk = !hasSubject || student.favorite_subject === ans.favoriteSubject;
-  return yrOk && colorOk && subjectOk;
-}
-
-// Limpa senha e LOGIN de um aluno (usado pelo professor para resetar acesso).
-export async function clearStudentPassword(studentId: string): Promise<void> {
-  const { error } = await supabase
-    .from("students")
-    .update({
-      password_hash: null,
-      username: null,
-      birth_year: null,
-      favorite_color: null,
-      favorite_subject: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", studentId);
-  if (error) throw error;
-}
-
-// Cria um aluno "Visitante" (público em geral) com login e senha próprios.
-export async function createVisitor(
-  fullName: string,
-  password: string,
-  birthYear: number,
-  favoriteColor: string,
-  favoriteSubject: string,
-): Promise<{ student: Student; username: string }> {
-  const name = fullName.trim().replace(/\s+/g, " ");
-  if (name.length < 2) throw new Error("Nome muito curto");
-  const username = await pickAvailableUsername(name, birthYear);
-  const hash = await hashPassword(name, password);
-  const { data, error } = await supabase
-    .from("students")
-    .insert({
-      first_name: name,
-      password_hash: hash,
-      username,
-      birth_year: birthYear,
-      favorite_color: favoriteColor.toLowerCase(),
-      favorite_subject: favoriteSubject,
-      grade: "Visitante",
-      class_name: null,
-      shift: null,
-    })
-    .select("*")
-    .single();
-  if (error) throw error;
-  return { student: data as Student, username };
-}
-
-export async function createStudentWithPassword(
-  firstName: string,
-  password: string,
-  enrollment: StudentEnrollment,
-): Promise<Student> {
-  const name = firstName.trim();
-  const hash = await hashPassword(name, password);
-  const { data, error } = await supabase
-    .from("students")
-    .insert({ first_name: name, password_hash: hash, ...enrollment })
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as Student;
 }
 
 export interface StudentEnrollment {
@@ -326,40 +322,39 @@ export async function findOrCreateStudent(
   const name = firstName.trim();
   const { data: existing } = await supabase
     .from("students")
-    .select("*")
+    .select(SAFE_COLS)
     .ilike("first_name", name)
     .maybeSingle();
   if (existing) {
-    // Update enrollment info if provided and changed
+    const existingStudent = existing as Student;
     if (enrollment && (enrollment.grade || enrollment.class_name || enrollment.shift)) {
       const patch: { grade?: string; class_name?: string; shift?: string } = {};
-      if (enrollment.grade && enrollment.grade !== existing.grade) patch.grade = enrollment.grade;
-      if (enrollment.class_name && enrollment.class_name !== existing.class_name) patch.class_name = enrollment.class_name;
-      if (enrollment.shift && enrollment.shift !== existing.shift) patch.shift = enrollment.shift;
+      if (enrollment.grade && enrollment.grade !== existingStudent.grade) patch.grade = enrollment.grade;
+      if (enrollment.class_name && enrollment.class_name !== existingStudent.class_name) patch.class_name = enrollment.class_name;
+      if (enrollment.shift && enrollment.shift !== existingStudent.shift) patch.shift = enrollment.shift;
       if (Object.keys(patch).length > 0) {
         const { data: updated } = await supabase
           .from("students")
           .update(patch)
-          .eq("id", existing.id)
-          .select("*")
+          .eq("id", existingStudent.id)
+          .select(SAFE_COLS)
           .single();
         if (updated) return updated as Student;
       }
     }
-    return existing as Student;
+    return existingStudent;
   }
 
   const { data, error } = await supabase
     .from("students")
     .insert({ first_name: name, ...(enrollment ?? {}) })
-    .select("*")
+    .select(SAFE_COLS)
     .single();
   if (error) throw error;
   return data as Student;
 }
 
 export async function deleteStudent(id: string) {
-  // Remove dependentes primeiro para evitar órfãos
   await supabase.from("attempts").delete().eq("student_id", id);
   await supabase.from("sessions").delete().eq("student_id", id);
   const { error } = await supabase.from("students").delete().eq("id", id);
@@ -413,23 +408,10 @@ export async function updateSession(
   await supabase.from("sessions").update(patch).eq("id", id);
 }
 
-export async function getTeacherPassword(): Promise<string> {
-  const { data } = await supabase.from("teacher_settings").select("password").eq("id", 1).single();
-  return (data?.password as string) ?? "140799";
-}
-
-export async function setTeacherPassword(newPassword: string) {
-  const { error } = await supabase
-    .from("teacher_settings")
-    .update({ password: newPassword, updated_at: new Date().toISOString() })
-    .eq("id", 1);
-  if (error) throw error;
-}
-
 export async function listStudents(): Promise<Student[]> {
   const { data, error } = await supabase
     .from("students")
-    .select("*")
+    .select(SAFE_COLS)
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Student[];
@@ -442,22 +424,17 @@ export interface RankingEntry {
   grade: string | null;
   total_correct: number;
   total_wrong: number;
-  accuracy: number; // 0-100
-  active_days: number; // dias distintos com sessão registrada
-  score: number; // pontuação ponderada (0-1000)
+  accuracy: number;
+  active_days: number;
+  score: number;
 }
 
-// Pesos do ranking. Soma = 1.0
-// - Acertos (qualidade do desempenho)
-// - Volume respondido (esforço total)
-// - Frequência: dias distintos jogando (uso do app)
 const RANK_WEIGHTS = { correct: 0.45, answered: 0.25, frequency: 0.30 };
 
 async function rankStudentsWeighted(rows: Student[]): Promise<RankingEntry[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
 
-  // Dias ativos distintos por aluno (frequência de uso).
   const { data: sessions } = await supabase
     .from("sessions")
     .select("student_id, started_at")
@@ -488,8 +465,6 @@ async function rankStudentsWeighted(rows: Student[]): Promise<RankingEntry[]> {
 
   if (base.length === 0) return [];
 
-  // Normalização min-max dentro do próprio cohort para que os três
-  // critérios convivam na mesma escala (0..1).
   const maxCorrect = Math.max(...base.map((b) => b.total_correct), 1);
   const maxAnswered = Math.max(...base.map((b) => b.answered), 1);
   const maxDays = Math.max(...base.map((b) => b.activeDays), 1);
@@ -500,7 +475,6 @@ async function rankStudentsWeighted(rows: Student[]): Promise<RankingEntry[]> {
         RANK_WEIGHTS.correct * (b.total_correct / maxCorrect) +
         RANK_WEIGHTS.answered * (b.answered / maxAnswered) +
         RANK_WEIGHTS.frequency * (b.activeDays / maxDays);
-      // Bônus de consistência (acurácia) para desempatar: 0.85 → 1.0.
       const accuracyBonus = 0.85 + (b.accuracy / 100) * 0.15;
       return {
         id: b.id,
@@ -518,17 +492,17 @@ async function rankStudentsWeighted(rows: Student[]): Promise<RankingEntry[]> {
 }
 
 export async function getClassRanking(className: string | null, grade: string | null): Promise<RankingEntry[]> {
-  let q = supabase.from("students").select("*");
+  let q = supabase.from("students").select(SAFE_COLS);
   if (className) q = q.eq("class_name", className);
   else q = q.is("class_name", null);
   if (grade) q = q.eq("grade", grade);
   const { data } = await q;
-  return rankStudentsWeighted((data ?? []) as Student[]);
+  return rankStudentsWeighted(((data ?? []) as Student[]));
 }
 
 export async function getOverallRanking(): Promise<RankingEntry[]> {
-  const { data } = await supabase.from("students").select("*");
-  return rankStudentsWeighted((data ?? []) as Student[]);
+  const { data } = await supabase.from("students").select(SAFE_COLS);
+  return rankStudentsWeighted(((data ?? []) as Student[]));
 }
 
 export interface TableStat {
@@ -577,7 +551,7 @@ export async function getStudentStats(studentId: string) {
   const sumWrong = (rows: typeof all) => rows.reduce((acc, s) => acc + (s.wrong_count ?? 0), 0);
 
   return {
-    tableStats: tableStatsMult, // backwards-compat
+    tableStats: tableStatsMult,
     sessions: all,
     multiplication: {
       tableStats: tableStatsMult,
