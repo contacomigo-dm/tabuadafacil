@@ -72,9 +72,14 @@ function TeacherPage() {
     });
   }, [students, search, turmaFilter]);
 
-  // Session auth
+  // Verifica token salvo do professor com o servidor.
   useEffect(() => {
-    if (sessionStorage.getItem("teacherAuthed") === "1") setAuthed(true);
+    const token = getTeacherToken();
+    if (!token) return;
+    teacherVerify(token).then((ok) => {
+      if (ok) setAuthed(true);
+      else clearTeacherToken();
+    });
   }, []);
 
   useEffect(() => {
@@ -96,9 +101,8 @@ function TeacherPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const real = await getTeacherPassword();
-      if (pw === real) {
-        sessionStorage.setItem("teacherAuthed", "1");
+      const token = await teacherLogin(pw);
+      if (token) {
         setAuthed(true);
         toast.success("Bem-vindo(a), professor(a)!");
       } else {
@@ -112,15 +116,24 @@ function TeacherPage() {
 
   const handleChangePw = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPw.length < 4) {
-      toast.error("A senha deve ter pelo menos 4 caracteres");
+    if (currentPw.length === 0) {
+      toast.error("Digite a senha atual");
+      return;
+    }
+    if (newPw.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
       return;
     }
     try {
-      await setTeacherPassword(newPw);
-      toast.success("Senha atualizada");
-      setNewPw("");
-      setShowSettings(false);
+      const ok = await teacherChangePassword(currentPw, newPw);
+      if (ok) {
+        toast.success("Senha atualizada");
+        setNewPw("");
+        setCurrentPw("");
+        setShowSettings(false);
+      } else {
+        toast.error("Senha atual incorreta");
+      }
     } catch {
       toast.error("Erro ao atualizar senha");
     }
