@@ -449,6 +449,44 @@ function StudentDetail({
         </div>
       </div>
 
+      {/* Desafio da Semana */}
+      <div className="bg-card rounded-2xl p-6 border border-border">
+        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+          <span>🏆</span> Desafio da Semana
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card
+            label={`Semana ${week} de ${year}`}
+            value={currentWeekRecord ? `✅ ${currentWeekRecord.correct_count}/${currentWeekRecord.total_questions}` : "⏳ Não feito"}
+            color={currentWeekRecord ? "text-success" : "text-muted-foreground"}
+          />
+          <Card label="Streak (semanas)" value={streak} color="text-primary" />
+          <Card label="Selos conquistados" value={weeklyRecords?.length ?? 0} color="text-accent" />
+        </div>
+        {weeklyRecords && weeklyRecords.length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Histórico de selos
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {weeklyRecords.slice(0, 12).map((r) => (
+                <span
+                  key={r.id}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold",
+                    r.year === year && r.week === week
+                      ? "bg-success/15 border-success/30 text-success"
+                      : "bg-accent/20 border-accent/40 text-foreground"
+                  )}
+                >
+                  ⭐ S{r.week}/{r.year} · {r.correct_count}/{r.total_questions}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <Tabs defaultValue="multiplication" className="w-full">
         <TabsList className="grid grid-cols-2 w-full max-w-md">
           <TabsTrigger value="multiplication">✖️ Multiplicação</TabsTrigger>
