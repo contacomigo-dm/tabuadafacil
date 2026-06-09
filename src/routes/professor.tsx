@@ -221,10 +221,19 @@ function TeacherPage() {
           >
             <Input
               type="password"
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              placeholder="Senha atual"
+              className="flex-1 min-w-[200px] h-11"
+              autoComplete="current-password"
+            />
+            <Input
+              type="password"
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
-              placeholder="Nova senha (mín 4 caracteres)"
+              placeholder="Nova senha (mín 6 caracteres)"
               className="flex-1 min-w-[200px] h-11"
+              autoComplete="new-password"
             />
             <Button type="submit" className="bg-primary">Salvar nova senha</Button>
           </form>
