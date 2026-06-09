@@ -7,6 +7,7 @@ import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { listWeeklyRecords, getISOWeek, computeStreak, type WeeklyRecord } from "@/lib/weekly";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -36,6 +37,7 @@ function TeacherPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState<Student | null>(null);
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getStudentStats>> | null>(null);
+  const [weeklyRecords, setWeeklyRecords] = useState<WeeklyRecord[] | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [loading, setLoading] = useState(false);
@@ -82,9 +84,11 @@ function TeacherPage() {
   useEffect(() => {
     if (!selected) {
       setStats(null);
+      setWeeklyRecords(null);
       return;
     }
     getStudentStats(selected.id).then(setStats).catch(() => {});
+    listWeeklyRecords(selected.id).then(setWeeklyRecords).catch(() => {});
   }, [selected]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -399,7 +403,7 @@ function TeacherPage() {
                 Selecione um aluno para ver o progresso.
               </div>
             ) : (
-              <StudentDetail student={selected} stats={stats} />
+              <StudentDetail student={selected} stats={stats} weeklyRecords={weeklyRecords} />
             )}
           </section>
         </div>
@@ -411,12 +415,17 @@ function TeacherPage() {
 function StudentDetail({
   student,
   stats,
+  weeklyRecords,
 }: {
   student: Student;
   stats: Awaited<ReturnType<typeof getStudentStats>> | null;
+  weeklyRecords?: WeeklyRecord[] | null;
 }) {
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
+  const { year, week } = getISOWeek();
+  const currentWeekRecord = weeklyRecords?.find((r) => r.year === year && r.week === week);
+  const streak = weeklyRecords ? computeStreak(weeklyRecords) : 0;
 
   return (
     <div className="space-y-4">
@@ -438,6 +447,44 @@ function StudentDetail({
           <Card label="Acertos (geral)" value={student.total_correct} color="text-success" />
           <Card label="Erros (geral)" value={student.total_wrong} color="text-warning" />
         </div>
+      </div>
+
+      {/* Desafio da Semana */}
+      <div className="bg-card rounded-2xl p-6 border border-border">
+        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+          <span>🏆</span> Desafio da Semana
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card
+            label={`Semana ${week} de ${year}`}
+            value={currentWeekRecord ? `✅ ${currentWeekRecord.correct_count}/${currentWeekRecord.total_questions}` : "⏳ Não feito"}
+            color={currentWeekRecord ? "text-success" : "text-muted-foreground"}
+          />
+          <Card label="Streak (semanas)" value={streak} color="text-primary" />
+          <Card label="Selos conquistados" value={weeklyRecords?.length ?? 0} color="text-accent" />
+        </div>
+        {weeklyRecords && weeklyRecords.length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Histórico de selos
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {weeklyRecords.slice(0, 12).map((r) => (
+                <span
+                  key={r.id}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold",
+                    r.year === year && r.week === week
+                      ? "bg-success/15 border-success/30 text-success"
+                      : "bg-accent/20 border-accent/40 text-foreground"
+                  )}
+                >
+                  ⭐ S{r.week}/{r.year} · {r.correct_count}/{r.total_questions}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="multiplication" className="w-full">
