@@ -306,7 +306,19 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      bcrypt_hash: { Args: { p_password: string }; Returns: string }
+      change_teacher_password: {
+        Args: { p_current: string; p_new: string }
+        Returns: boolean
+      }
+      verify_bcrypt: {
+        Args: { p_hash: string; p_password: string }
+        Returns: boolean
+      }
+      verify_teacher_password: {
+        Args: { p_password: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
