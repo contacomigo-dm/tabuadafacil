@@ -40,6 +40,7 @@ function TeacherPage() {
   const [weeklyRecords, setWeeklyRecords] = useState<WeeklyRecord[] | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newPw, setNewPw] = useState("");
+  const [currentPw, setCurrentPw] = useState("");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [turmaFilter, setTurmaFilter] = useState<string>("__all__");
