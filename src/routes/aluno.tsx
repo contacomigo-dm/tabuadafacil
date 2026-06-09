@@ -159,14 +159,9 @@ function AlunoEntry() {
     e.preventDefault();
     setLoading(true);
     try {
-      const s = await findStudentByUsername(usernameInput);
+      const s = await studentLogin(usernameInput, password);
       if (!s) {
-        toast.error("Login não encontrado");
-        return;
-      }
-      const ok = await verifyStudentPassword(s, password);
-      if (!ok) {
-        toast.error("Senha incorreta");
+        toast.error("LOGIN ou senha incorretos");
         setPassword("");
         return;
       }
@@ -181,17 +176,18 @@ function AlunoEntry() {
     if (!selected) return;
     setLoading(true);
     try {
-      const ok = await verifyStudentPassword(selected, password);
-      if (!ok) {
+      if (!selected.username || selected.username.trim().length === 0) {
+        // No password set yet — go to set-password flow.
+        setStep("set-password");
+        return;
+      }
+      const s = await studentLogin(selected.username, password);
+      if (!s) {
         toast.error("Senha incorreta");
         setPassword("");
         return;
       }
-      if (!selected.username || selected.username.trim().length === 0) {
-        setStep("set-password");
-        return;
-      }
-      goPlay(selected);
+      goPlay(s);
     } finally {
       setLoading(false);
     }
