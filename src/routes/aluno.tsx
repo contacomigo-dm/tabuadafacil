@@ -3,13 +3,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  verifyStudentPassword,
-  setStudentPassword,
+  studentLogin,
+  studentSetPasswordFirstTime,
+  studentResetWithSecurity,
   validatePasswordStrength,
   validateBirthYear,
   validateFavoriteColor,
   validateFavoriteSubject,
-  verifySecurityAnswers,
   listStudentsByEnrollment,
   findStudentByUsername,
   getSchoolCode,
@@ -159,14 +159,9 @@ function AlunoEntry() {
     e.preventDefault();
     setLoading(true);
     try {
-      const s = await findStudentByUsername(usernameInput);
+      const s = await studentLogin(usernameInput, password);
       if (!s) {
-        toast.error("Login não encontrado");
-        return;
-      }
-      const ok = await verifyStudentPassword(s, password);
-      if (!ok) {
-        toast.error("Senha incorreta");
+        toast.error("LOGIN ou senha incorretos");
         setPassword("");
         return;
       }
@@ -181,17 +176,18 @@ function AlunoEntry() {
     if (!selected) return;
     setLoading(true);
     try {
-      const ok = await verifyStudentPassword(selected, password);
-      if (!ok) {
+      if (!selected.username || selected.username.trim().length === 0) {
+        // No password set yet — go to set-password flow.
+        setStep("set-password");
+        return;
+      }
+      const s = await studentLogin(selected.username, password);
+      if (!s) {
         toast.error("Senha incorreta");
         setPassword("");
         return;
       }
-      if (!selected.username || selected.username.trim().length === 0) {
-        setStep("set-password");
-        return;
-      }
-      goPlay(selected);
+      goPlay(s);
     } finally {
       setLoading(false);
     }
@@ -214,14 +210,25 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr, {
+      const login = await studentSetPasswordFirstTime({
+        firstName: selected.first_name,
+        grade: selected.grade,
+        className: selected.class_name,
+        shift: selected.shift,
+        password,
+        birthYear: yr,
         favoriteColor: favColor,
         favoriteSubject: favSubject,
       });
       setAssignedLogin(login);
       setStep("show-login");
-    } catch {
-      toast.error("Erro ao salvar senha");
+    } catch (err) {
+      const msg = (err as Error)?.message ?? "";
+      if (msg.includes("already_has_password")) {
+        toast.error("Esta conta já tem senha. Use Entrar.");
+      } else {
+        toast.error("Erro ao salvar senha");
+      }
     } finally {
       setLoading(false);
     }
@@ -285,29 +292,18 @@ function AlunoEntry() {
     }
   };
 
-  // Confere as 3 perguntas de segurança antes de liberar a redefinição.
+  // Etapa de coleta das 3 respostas de segurança. A verificação acontece no servidor
+  // ao gravar a nova senha (as respostas não são lidas pelo navegador).
   const handleResetSecurity = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
     const yr = parseInt(birthYear, 10);
     const yErr = validateBirthYear(yr);
     if (yErr) return toast.error(yErr);
-    const hasSecurity = !!selected.favorite_color || !!selected.favorite_subject;
-    if (hasSecurity) {
-      const cErr = validateFavoriteColor(favColor);
-      if (cErr) return toast.error(cErr);
-      const sErr = validateFavoriteSubject(favSubject);
-      if (sErr) return toast.error(sErr);
-    }
-    const ok = verifySecurityAnswers(selected, {
-      birthYear: yr,
-      favoriteColor: favColor,
-      favoriteSubject: favSubject,
-    });
-    if (!ok) {
-      toast.error("Respostas não conferem. Procure seu professor se não lembrar.");
-      return;
-    }
+    const cErr = validateFavoriteColor(favColor);
+    if (cErr) return toast.error(cErr);
+    const sErr = validateFavoriteSubject(favSubject);
+    if (sErr) return toast.error(sErr);
     setPassword("");
     setPassword2("");
     setStep("reset-set-password");
@@ -326,15 +322,28 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr, {
-        favoriteColor: favColor || selected.favorite_color || undefined,
-        favoriteSubject: favSubject || selected.favorite_subject || undefined,
+      const login = await studentResetWithSecurity({
+        firstName: selected.first_name,
+        grade: selected.grade,
+        className: selected.class_name,
+        shift: selected.shift,
+        newPassword: password,
+        birthYear: yr,
+        favoriteColor: favColor,
+        favoriteSubject: favSubject,
       });
       toast.success("Senha redefinida com sucesso!");
       setAssignedLogin(login);
       setStep("show-login");
-    } catch {
-      toast.error("Erro ao redefinir senha");
+    } catch (err) {
+      const msg = (err as Error)?.message ?? "";
+      if (msg.includes("wrong_answers")) {
+        toast.error("Respostas não conferem. Procure seu professor.");
+      } else if (msg.includes("no_security_answers")) {
+        toast.error("Esta conta antiga não tem perguntas de segurança. Procure seu professor para resetar.");
+      } else {
+        toast.error("Erro ao redefinir senha");
+      }
     } finally {
       setLoading(false);
     }

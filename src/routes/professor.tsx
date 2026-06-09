@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getTeacherPassword, setTeacherPassword, listStudents, getStudentStats, deleteStudent, clearStudentPassword, getOverallRanking, createStudentsRoster, type Student, type TableStat, type RankingEntry } from "@/lib/api";
+import { teacherLogin, teacherVerify, teacherChangePassword, teacherResetStudentPassword, getTeacherToken, clearTeacherToken, listStudents, getStudentStats, deleteStudent, getOverallRanking, createStudentsRoster, type Student, type TableStat, type RankingEntry } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ function TeacherPage() {
   const [weeklyRecords, setWeeklyRecords] = useState<WeeklyRecord[] | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newPw, setNewPw] = useState("");
+  const [currentPw, setCurrentPw] = useState("");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [turmaFilter, setTurmaFilter] = useState<string>("__all__");
@@ -71,9 +72,14 @@ function TeacherPage() {
     });
   }, [students, search, turmaFilter]);
 
-  // Session auth
+  // Verifica token salvo do professor com o servidor.
   useEffect(() => {
-    if (sessionStorage.getItem("teacherAuthed") === "1") setAuthed(true);
+    const token = getTeacherToken();
+    if (!token) return;
+    teacherVerify(token).then((ok) => {
+      if (ok) setAuthed(true);
+      else clearTeacherToken();
+    });
   }, []);
 
   useEffect(() => {
@@ -95,9 +101,8 @@ function TeacherPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const real = await getTeacherPassword();
-      if (pw === real) {
-        sessionStorage.setItem("teacherAuthed", "1");
+      const token = await teacherLogin(pw);
+      if (token) {
         setAuthed(true);
         toast.success("Bem-vindo(a), professor(a)!");
       } else {
@@ -111,15 +116,24 @@ function TeacherPage() {
 
   const handleChangePw = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPw.length < 4) {
-      toast.error("A senha deve ter pelo menos 4 caracteres");
+    if (currentPw.length === 0) {
+      toast.error("Digite a senha atual");
+      return;
+    }
+    if (newPw.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
       return;
     }
     try {
-      await setTeacherPassword(newPw);
-      toast.success("Senha atualizada");
-      setNewPw("");
-      setShowSettings(false);
+      const ok = await teacherChangePassword(currentPw, newPw);
+      if (ok) {
+        toast.success("Senha atualizada");
+        setNewPw("");
+        setCurrentPw("");
+        setShowSettings(false);
+      } else {
+        toast.error("Senha atual incorreta");
+      }
     } catch {
       toast.error("Erro ao atualizar senha");
     }
@@ -207,10 +221,19 @@ function TeacherPage() {
           >
             <Input
               type="password"
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              placeholder="Senha atual"
+              className="flex-1 min-w-[200px] h-11"
+              autoComplete="current-password"
+            />
+            <Input
+              type="password"
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
-              placeholder="Nova senha (mín 4 caracteres)"
+              placeholder="Nova senha (mín 6 caracteres)"
               className="flex-1 min-w-[200px] h-11"
+              autoComplete="new-password"
             />
             <Button type="submit" className="bg-primary">Salvar nova senha</Button>
           </form>
@@ -337,7 +360,13 @@ function TeacherPage() {
                                       e.stopPropagation();
                                       if (!confirm(`Resetar a senha de "${s.first_name}"? O aluno precisará cadastrar uma nova senha (e um novo LOGIN com o ano de nascimento) no próximo acesso.`)) return;
                                       try {
-                                        await clearStudentPassword(s.id);
+                                        const ok = await teacherResetStudentPassword(s.id);
+                                        if (!ok) {
+                                          toast.error("Sessão expirada. Faça login novamente.");
+                                          clearTeacherToken();
+                                          setAuthed(false);
+                                          return;
+                                        }
                                         setStudents((prev) =>
                                           prev.map((x) =>
                                             x.id === s.id

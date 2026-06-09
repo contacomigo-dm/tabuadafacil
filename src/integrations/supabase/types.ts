@@ -50,6 +50,13 @@ export type Database = {
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sessions: {
@@ -92,6 +99,13 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_public"
             referencedColumns: ["id"]
           },
         ]
@@ -159,19 +173,19 @@ export type Database = {
       teacher_settings: {
         Row: {
           id: number
-          password: string
+          password_hash: string
           school_code: string
           updated_at: string
         }
         Insert: {
           id?: number
-          password?: string
+          password_hash: string
           school_code?: string
           updated_at?: string
         }
         Update: {
           id?: number
-          password?: string
+          password_hash?: string
           school_code?: string
           updated_at?: string
         }
@@ -219,14 +233,92 @@ export type Database = {
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "weekly_challenges_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      school_info: {
+        Row: {
+          school_code: string | null
+        }
+        Insert: {
+          school_code?: string | null
+        }
+        Update: {
+          school_code?: string | null
+        }
+        Relationships: []
+      }
+      students_public: {
+        Row: {
+          best_streak: number | null
+          class_name: string | null
+          created_at: string | null
+          current_level: number | null
+          current_streak: number | null
+          first_name: string | null
+          grade: string | null
+          id: string | null
+          shift: string | null
+          total_correct: number | null
+          total_wrong: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          best_streak?: number | null
+          class_name?: string | null
+          created_at?: string | null
+          current_level?: number | null
+          current_streak?: number | null
+          first_name?: string | null
+          grade?: string | null
+          id?: string | null
+          shift?: string | null
+          total_correct?: number | null
+          total_wrong?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          best_streak?: number | null
+          class_name?: string | null
+          created_at?: string | null
+          current_level?: number | null
+          current_streak?: number | null
+          first_name?: string | null
+          grade?: string | null
+          id?: string | null
+          shift?: string | null
+          total_correct?: number | null
+          total_wrong?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      bcrypt_hash: { Args: { p_password: string }; Returns: string }
+      change_teacher_password: {
+        Args: { p_current: string; p_new: string }
+        Returns: boolean
+      }
+      verify_bcrypt: {
+        Args: { p_hash: string; p_password: string }
+        Returns: boolean
+      }
+      verify_teacher_password: {
+        Args: { p_password: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
