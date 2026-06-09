@@ -403,7 +403,7 @@ function TeacherPage() {
                 Selecione um aluno para ver o progresso.
               </div>
             ) : (
-              <StudentDetail student={selected} stats={stats} />
+              <StudentDetail student={selected} stats={stats} weeklyRecords={weeklyRecords} />
             )}
           </section>
         </div>
