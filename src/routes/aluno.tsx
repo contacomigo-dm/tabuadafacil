@@ -210,14 +210,25 @@ function AlunoEntry() {
     }
     setLoading(true);
     try {
-      const login = await setStudentPassword(selected, password, yr, {
+      const login = await studentSetPasswordFirstTime({
+        firstName: selected.first_name,
+        grade: selected.grade,
+        className: selected.class_name,
+        shift: selected.shift,
+        password,
+        birthYear: yr,
         favoriteColor: favColor,
         favoriteSubject: favSubject,
       });
       setAssignedLogin(login);
       setStep("show-login");
-    } catch {
-      toast.error("Erro ao salvar senha");
+    } catch (err) {
+      const msg = (err as Error)?.message ?? "";
+      if (msg.includes("already_has_password")) {
+        toast.error("Esta conta já tem senha. Use Entrar.");
+      } else {
+        toast.error("Erro ao salvar senha");
+      }
     } finally {
       setLoading(false);
     }
