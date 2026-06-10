@@ -78,6 +78,8 @@ function EscolherAtividade() {
     sessionStorage.removeItem("studentId");
     sessionStorage.removeItem("studentName");
     sessionStorage.removeItem("studentLevel");
+    sessionStorage.removeItem("studentTheme");
+    applyTheme("floresta");
     navigate({ to: "/" });
   };
 
