@@ -91,6 +91,10 @@ function AlunoEntry() {
     sessionStorage.setItem("studentName", student.first_name);
     sessionStorage.setItem("studentLevel", String(student.current_level));
     sessionStorage.removeItem("chosenLevel");
+    // Carrega tema preferido do aluno e aplica antes de navegar.
+    import("@/lib/theme").then(({ loadStudentTheme, applyTheme }) => {
+      loadStudentTheme(student.id).then(applyTheme).catch(() => {});
+    });
     navigate({ to: "/escolher-atividade" });
   };
 

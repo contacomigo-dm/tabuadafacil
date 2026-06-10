@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getClassRanking, type RankingEntry } from "@/lib/api";
+import ThemePicker from "@/components/ThemePicker";
+import { THEME_META, getActiveTheme, applyTheme, loadStudentTheme, type ThemeId } from "@/lib/theme";
 
 export const Route = createFileRoute("/escolher-atividade")({
   head: () => ({
@@ -19,6 +21,7 @@ function EscolherAtividade() {
   const [level, setLevel] = useState(1);
   const [top3, setTop3] = useState<RankingEntry[]>([]);
   const [turmaLabel, setTurmaLabel] = useState("");
+  const [theme, setTheme] = useState<ThemeId>(getActiveTheme());
 
   useEffect(() => {
     const id = sessionStorage.getItem("studentId");
@@ -29,6 +32,12 @@ function EscolherAtividade() {
     setStudentId(id);
     setName(sessionStorage.getItem("studentName") ?? "");
     setLevel(Number(sessionStorage.getItem("studentLevel") ?? "1"));
+
+    // Garante tema atualizado a partir do banco (caso outro dispositivo tenha mudado).
+    loadStudentTheme(id).then((t) => {
+      applyTheme(t);
+      setTheme(t);
+    }).catch(() => {});
 
     // Carrega ranking da turma
     (async () => {

@@ -1,6 +1,8 @@
 import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import FontSizeControl from "@/components/FontSizeControl";
+import { applyTheme, getActiveTheme } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -30,6 +32,9 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  useEffect(() => {
+    applyTheme(getActiveTheme());
+  }, []);
   return (
     <>
       <FontSizeControl />
