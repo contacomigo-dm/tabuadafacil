@@ -1161,3 +1161,163 @@ function RosterManager({ onCreated }: { onCreated: () => void | Promise<void> })
   );
 }
 
+function DesafioSemanaPorTurma({
+  students,
+  onSelectStudent,
+}: {
+  students: Student[];
+  onSelectStudent?: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<string>("__all__");
+  const [records, setRecords] = useState<WeeklyRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const { year, week } = useMemo(() => getISOWeek(), []);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    listWeeklyRecordsForWeek(year, week)
+      .then(setRecords)
+      .catch(() => toast.error("Erro ao carregar desafios da semana"))
+      .finally(() => setLoading(false));
+  }, [open, year, week]);
+
+  const turmaKeyOf = (s: { grade: string | null; class_name: string | null }) =>
+    s.class_name?.trim() ? `${s.grade ?? ""} ${s.class_name}`.trim() : (s.grade ?? "Sem turma");
+
+  const turmas = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of students) set.add(turmaKeyOf(s));
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [students]);
+
+  const recordsByStudent = useMemo(() => {
+    const map = new Map<string, WeeklyRecord>();
+    for (const r of records) map.set(r.student_id, r);
+    return map;
+  }, [records]);
+
+  const filteredStudents = useMemo(() => {
+    if (filter === "__all__") return students;
+    return students.filter((s) => turmaKeyOf(s) === filter);
+  }, [students, filter]);
+
+  const doneCount = filteredStudents.filter((s) => recordsByStudent.has(s.id)).length;
+  const totalCount = filteredStudents.length;
+
+  return (
+    <div className="bg-card rounded-2xl border border-border mb-6">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between p-4"
+      >
+        <span className="text-lg font-extrabold flex items-center gap-2">
+          🏆 Desafio da Semana — Semana {week}/{year}
+        </span>
+        <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <p className="text-sm text-muted-foreground mb-3">
+            Veja quem já fez o desafio obrigatório desta semana. {doneCount} de {totalCount} aluno(s) concluíram.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            <button
+              onClick={() => setFilter("__all__")}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-sm font-semibold border transition",
+                filter === "__all__"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border hover:border-primary",
+              )}
+            >
+              Todas as turmas
+            </button>
+            {turmas.map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilter(t)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-sm font-semibold border transition",
+                  filter === t
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border hover:border-primary",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Carregando…</p>
+          ) : filteredStudents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum aluno nesta turma.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b border-border">
+                    <th className="py-2">Aluno</th>
+                    <th className="py-2">Turma</th>
+                    <th className="py-2">Status</th>
+                    <th className="py-2 text-right">Pontuação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((s) => {
+                    const rec = recordsByStudent.get(s.id);
+                    const done = !!rec;
+                    return (
+                      <tr key={s.id} className="border-b border-border/50">
+                        <td className="py-2 font-bold">
+                          {onSelectStudent ? (
+                            <button
+                              type="button"
+                              onClick={() => onSelectStudent(s.id)}
+                              className="text-primary hover:underline text-left"
+                            >
+                              {s.first_name}
+                            </button>
+                          ) : (
+                            s.first_name
+                          )}
+                        </td>
+                        <td className="py-2 text-muted-foreground">{turmaKeyOf(s)}</td>
+                        <td className="py-2">
+                          {done ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/30 px-2.5 py-0.5 text-xs font-bold text-success">
+                              ✅ Feito
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted border border-border px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+                              ❌ Não feito
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 text-right tabular-nums">
+                          {done ? (
+                            <span className="text-success font-semibold">
+                              {rec.correct_count}/{rec.total_questions}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
