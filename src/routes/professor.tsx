@@ -244,6 +244,14 @@ function TeacherPage() {
           if (st) selectStudent(st);
         }} />
 
+        <DesafioSemanaPorTurma
+          students={students}
+          onSelectStudent={(id) => {
+            const st = students.find((x) => x.id === id);
+            if (st) selectStudent(st);
+          }}
+        />
+
         <AtividadePorData
           students={students}
           onSelectStudent={(id) => {
