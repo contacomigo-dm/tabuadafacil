@@ -166,3 +166,58 @@
     radial-gradient(circle at 80% 80%, oklch(0.82 0.16 75 / 0.1) 0, transparent 40%),
     radial-gradient(circle at 50% 50%, oklch(0.62 0.12 230 / 0.05) 0, transparent 50%);
 }
+
+/* =====================================================
+ * Temas amazônicos — aplicados via [data-theme="..."] no <html>.
+ * ===================================================== */
+
+[data-theme="floresta"] {
+  /* tokens default já são esta paleta */
+}
+
+[data-theme="rio"] {
+  --background: oklch(0.97 0.018 230);
+  --primary: oklch(0.55 0.14 230);
+  --primary-foreground: oklch(0.99 0.01 95);
+  --secondary: oklch(0.93 0.04 220);
+  --secondary-foreground: oklch(0.28 0.06 230);
+  --accent: oklch(0.78 0.12 350);
+  --accent-foreground: oklch(0.25 0.06 350);
+  --river: oklch(0.55 0.14 230);
+  --ring: oklch(0.55 0.14 230);
+  --border: oklch(0.86 0.03 230);
+  --muted: oklch(0.94 0.02 230);
+  --shadow-pop: 0 4px 0 0 oklch(0.4 0.12 230 / 0.35);
+}
+
+[data-theme="indigena"] {
+  --background: oklch(0.965 0.025 60);
+  --foreground: oklch(0.24 0.05 40);
+  --primary: oklch(0.55 0.16 35);
+  --primary-foreground: oklch(0.98 0.015 80);
+  --secondary: oklch(0.93 0.05 65);
+  --secondary-foreground: oklch(0.3 0.07 40);
+  --accent: oklch(0.7 0.16 55);
+  --accent-foreground: oklch(0.22 0.06 40);
+  --warning: oklch(0.7 0.18 45);
+  --ring: oklch(0.55 0.16 35);
+  --border: oklch(0.86 0.04 50);
+  --muted: oklch(0.94 0.03 60);
+  --shadow-pop: 0 4px 0 0 oklch(0.4 0.14 35 / 0.4);
+}
+
+[data-theme="ribeirinho"] {
+  --background: oklch(0.97 0.025 75);
+  --foreground: oklch(0.25 0.05 50);
+  --primary: oklch(0.65 0.18 50);
+  --primary-foreground: oklch(0.99 0.01 95);
+  --secondary: oklch(0.93 0.05 70);
+  --secondary-foreground: oklch(0.3 0.07 50);
+  --accent: oklch(0.78 0.15 30);
+  --accent-foreground: oklch(0.25 0.06 30);
+  --river: oklch(0.6 0.12 220);
+  --ring: oklch(0.65 0.18 50);
+  --border: oklch(0.87 0.04 65);
+  --muted: oklch(0.94 0.03 70);
+  --shadow-pop: 0 4px 0 0 oklch(0.45 0.16 50 / 0.4);
+}
