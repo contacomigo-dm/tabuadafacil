@@ -86,12 +86,29 @@ function EscolherAtividade() {
   return (
     <main className="min-h-screen leaf-bg flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-3xl text-center">
+        {/* Banner ilustrado do tema escolhido */}
+        <div className="relative mb-6 rounded-3xl overflow-hidden border border-border shadow-soft">
+          <img
+            src={THEME_META[theme].banner}
+            alt={`Tema ${THEME_META[theme].label}`}
+            width={1536}
+            height={512}
+            className="w-full aspect-[3/1] object-cover"
+          />
+          <div className="absolute top-3 right-3">
+            {studentId && (
+              <ThemePicker studentId={studentId} onChange={setTheme} />
+            )}
+          </div>
+        </div>
+
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/60 backdrop-blur px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-          <span aria-hidden>🌿</span> Olá, {name || "aluno(a)"}!
+          <span aria-hidden>{THEME_META[theme].emoji}</span> Olá, {name || "aluno(a)"}!
         </div>
         <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground">
           O que você quer <span className="text-primary">praticar</span> hoje?
         </h1>
+
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           <button onClick={goTabuada} className="block text-left">
