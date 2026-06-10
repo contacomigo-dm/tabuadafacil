@@ -125,6 +125,7 @@ export type Database = {
           id: string
           password_hash: string | null
           shift: string | null
+          theme: string
           total_correct: number
           total_wrong: number
           updated_at: string
@@ -144,6 +145,7 @@ export type Database = {
           id?: string
           password_hash?: string | null
           shift?: string | null
+          theme?: string
           total_correct?: number
           total_wrong?: number
           updated_at?: string
@@ -163,6 +165,7 @@ export type Database = {
           id?: string
           password_hash?: string | null
           shift?: string | null
+          theme?: string
           total_correct?: number
           total_wrong?: number
           updated_at?: string
