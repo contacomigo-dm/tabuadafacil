@@ -129,6 +129,16 @@ export async function getWeeklyRecord(
   return (data as WeeklyRecord | null) ?? null;
 }
 
+export async function listWeeklyRecordsForWeek(year: number, week: number): Promise<WeeklyRecord[]> {
+  const { data, error } = await supabase
+    .from("weekly_challenges")
+    .select("*")
+    .eq("year", year)
+    .eq("week", week);
+  if (error) throw error;
+  return (data ?? []) as WeeklyRecord[];
+}
+
 export async function listWeeklyRecords(studentId: string): Promise<WeeklyRecord[]> {
   const { data } = await supabase
     .from("weekly_challenges")
