@@ -86,7 +86,22 @@ export function validatePasswordStrength(pw: string): string | null {
 
 async function callFn<T>(name: string, payload: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>(name, { body: payload });
-  if (error) throw error;
+  if (error) {
+    // supabase.functions.invoke returns FunctionsHttpError on non-2xx without
+    // surfacing the JSON body. Try to read the body so callers can match on
+    // specific error codes (e.g. "already_has_password").
+    let code: string | null = null;
+    try {
+      const ctx = (error as { context?: Response }).context;
+      if (ctx && typeof ctx.clone === "function") {
+        const body = await ctx.clone().json().catch(() => null);
+        if (body && typeof body.error === "string") code = body.error;
+      }
+    } catch {
+      /* ignore */
+    }
+    throw new Error(code ?? error.message ?? "request_failed");
+  }
   return data as T;
 }
 
