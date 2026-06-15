@@ -204,6 +204,27 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "set_student_credentials") {
+      const token = String(body.token ?? "");
+      if (!(await verifyToken(token))) return json({ error: "unauthorized" }, 401);
+      const studentId = String(body.studentId ?? "");
+      const password = String(body.password ?? "");
+      const birthYear = Number(body.birthYear);
+      if (!studentId) return json({ error: "missing_student" }, 400);
+      if (password.length < 6 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password))
+        return json({ error: "weak_password" }, 400);
+      if (!Number.isInteger(birthYear) || birthYear < 1930 || birthYear > new Date().getFullYear())
+        return json({ error: "invalid_birth_year" }, 400);
+      try {
+        const { username } = await setStudentCredentials({ studentId, password, birthYear });
+        return json({ ok: true, username });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "error";
+        if (msg === "not_found") return json({ error: "not_found" }, 404);
+        throw e;
+      }
+    }
+
     return json({ error: "unknown_action" }, 400);
   } catch (e) {
     console.error(e);
