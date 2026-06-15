@@ -441,7 +441,18 @@ function TeacherPage() {
                 Selecione um aluno para ver o progresso.
               </div>
             ) : (
-              <StudentDetail student={selected} stats={stats} weeklyRecords={weeklyRecords} />
+              <StudentDetail
+                student={selected}
+                stats={stats}
+                weeklyRecords={weeklyRecords}
+                onCredentialsSet={(username) => {
+                  setStudents((prev) =>
+                    prev.map((x) => (x.id === selected.id ? { ...x, username, password_hash: "set" } : x)),
+                  );
+                  setSelected((s) => (s ? { ...s, username, password_hash: "set" } : s));
+                }}
+              />
+
             )}
           </section>
         </div>
