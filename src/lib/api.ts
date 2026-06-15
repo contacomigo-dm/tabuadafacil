@@ -175,6 +175,23 @@ export async function teacherResetStudentPassword(studentId: string): Promise<bo
   }
 }
 
+/** Teacher-set student credentials: returns the generated username. */
+export async function teacherSetStudentCredentials(args: {
+  studentId: string;
+  password: string;
+  birthYear: number;
+}): Promise<string> {
+  const token = getTeacherToken();
+  if (!token) throw new Error("no_token");
+  const res = await callFn<{ username?: string; error?: string }>("teacher-auth", {
+    action: "set_student_credentials",
+    token,
+    ...args,
+  });
+  if (!res?.username) throw new Error(res?.error ?? "set_credentials_failed");
+  return res.username;
+}
+
 // --- Student auth -----------------------------------------------------------
 
 /** Server-side login: returns the safe student record on success, null otherwise. */
