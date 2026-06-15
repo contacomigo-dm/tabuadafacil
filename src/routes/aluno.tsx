@@ -228,10 +228,15 @@ function AlunoEntry() {
       setStep("show-login");
     } catch (err) {
       const msg = (err as Error)?.message ?? "";
+      console.error("set_password_first_time error:", msg);
       if (msg.includes("already_has_password")) {
         toast.error("Esta conta já tem senha. Use Entrar.");
+      } else if (msg.includes("not_found")) {
+        toast.error("Aluno não encontrado para esta turma. Confira nome/turma/turno.");
+      } else if (msg.includes("invalid_input")) {
+        toast.error("Dados inválidos. Verifique senha (mín. 6, com letra e número), ano e respostas.");
       } else {
-        toast.error("Erro ao salvar senha");
+        toast.error("Erro ao salvar senha: " + (msg || "tente novamente"));
       }
     } finally {
       setLoading(false);
