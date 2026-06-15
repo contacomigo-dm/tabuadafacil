@@ -500,6 +500,9 @@ function StudentDetail({
         </div>
       </div>
 
+      <CredentialsAdminCard student={student} onCredentialsSet={onCredentialsSet} />
+
+
       {/* Desafio da Semana */}
       <div className="bg-card rounded-2xl p-6 border border-border">
         <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
