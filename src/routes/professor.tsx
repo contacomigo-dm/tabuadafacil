@@ -465,10 +465,12 @@ function StudentDetail({
   student,
   stats,
   weeklyRecords,
+  onCredentialsSet,
 }: {
   student: Student;
   stats: Awaited<ReturnType<typeof getStudentStats>> | null;
   weeklyRecords?: WeeklyRecord[] | null;
+  onCredentialsSet?: (username: string) => void;
 }) {
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
