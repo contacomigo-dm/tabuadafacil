@@ -96,6 +96,68 @@ async function resetStudentPassword(studentId: string): Promise<void> {
   if (error) throw error;
 }
 
+const STOP_WORDS = new Set(["da", "de", "di", "do", "du", "das", "dos", "e"]);
+function buildUsernameBase(fullName: string): string {
+  return fullName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w && !STOP_WORDS.has(w))
+    .map((w) => w[0])
+    .join("");
+}
+
+async function pickAvailableUsername(
+  fullName: string,
+  birthYear: number | null,
+  excludeId?: string,
+): Promise<string> {
+  const base = buildUsernameBase(fullName) || "aluno";
+  const root = `${base}${birthYear ? String(birthYear) : ""}`;
+  for (let i = 1; i < 999; i++) {
+    const candidate = i === 1 ? root : `${root}-${i}`;
+    let q = admin.from("students").select("id").ilike("username", candidate);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q.maybeSingle();
+    if (!data) return candidate;
+  }
+  return `${root}-${Date.now()}`;
+}
+
+async function bcryptHash(password: string): Promise<string> {
+  const { data, error } = await admin.rpc("bcrypt_hash", { p_password: password });
+  if (error || !data) throw new Error("hash failed");
+  return data as string;
+}
+
+async function setStudentCredentials(args: {
+  studentId: string;
+  password: string;
+  birthYear: number;
+}): Promise<{ username: string }> {
+  const { data: student, error: e1 } = await admin
+    .from("students")
+    .select("id, first_name")
+    .eq("id", args.studentId)
+    .maybeSingle();
+  if (e1) throw e1;
+  if (!student) throw new Error("not_found");
+  const username = await pickAvailableUsername(student.first_name, args.birthYear, student.id);
+  const hash = await bcryptHash(args.password);
+  const { error } = await admin
+    .from("students")
+    .update({
+      password_hash: hash,
+      username,
+      birth_year: args.birthYear,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", student.id);
+  if (error) throw error;
+  return { username };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
