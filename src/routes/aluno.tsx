@@ -441,29 +441,7 @@ function AlunoEntry() {
             >
               🔑 Já tenho login
             </Button>
-            <Button
-              onClick={() => {
-                setFlow("first");
-                setStep("enrollment");
-              }}
-              variant="outline"
-              className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2"
-            >
-              ✨ Primeiro acesso (aluno da escola)
-            </Button>
-            <Button
-              onClick={() => {
-                setFlow("reset");
-                setGrade("");
-                setClassName("");
-                setShift("");
-                setStep("enrollment");
-              }}
-              variant="outline"
-              className="btn-pop w-full h-14 text-base font-bold rounded-2xl border-2"
-            >
-              🔄 Esqueci minha senha
-            </Button>
+
             <Button
               onClick={() => {
                 setVisitorName("");
