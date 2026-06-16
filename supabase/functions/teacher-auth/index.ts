@@ -133,8 +133,8 @@ async function bcryptHash(password: string): Promise<string> {
 
 async function setStudentCredentials(args: {
   studentId: string;
+  username: string;
   password: string;
-  birthYear: number;
 }): Promise<{ username: string }> {
   const { data: student, error: e1 } = await admin
     .from("students")
@@ -143,19 +143,25 @@ async function setStudentCredentials(args: {
     .maybeSingle();
   if (e1) throw e1;
   if (!student) throw new Error("not_found");
-  const username = await pickAvailableUsername(student.first_name, args.birthYear, student.id);
+  // Check uniqueness (case-insensitive) excluding this student.
+  const { data: clash } = await admin
+    .from("students")
+    .select("id")
+    .ilike("username", args.username)
+    .neq("id", student.id)
+    .maybeSingle();
+  if (clash) throw new Error("username_taken");
   const hash = await bcryptHash(args.password);
   const { error } = await admin
     .from("students")
     .update({
       password_hash: hash,
-      username,
-      birth_year: args.birthYear,
+      username: args.username,
       updated_at: new Date().toISOString(),
     })
     .eq("id", student.id);
   if (error) throw error;
-  return { username };
+  return { username: args.username };
 }
 
 Deno.serve(async (req) => {
@@ -209,18 +215,19 @@ Deno.serve(async (req) => {
       if (!(await verifyToken(token))) return json({ error: "unauthorized" }, 401);
       const studentId = String(body.studentId ?? "");
       const password = String(body.password ?? "");
-      const birthYear = Number(body.birthYear);
+      const username = String(body.username ?? "").trim();
       if (!studentId) return json({ error: "missing_student" }, 400);
-      if (password.length < 6 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password))
-        return json({ error: "weak_password" }, 400);
-      if (!Number.isInteger(birthYear) || birthYear < 1930 || birthYear > new Date().getFullYear())
-        return json({ error: "invalid_birth_year" }, 400);
+      if (!/^[A-Za-z]{1,10}[0-9]{2}$/.test(username))
+        return json({ error: "invalid_username" }, 400);
+      if (!/^[0-9]{3,}$/.test(password) && password.length < 3)
+        return json({ error: "invalid_password" }, 400);
       try {
-        const { username } = await setStudentCredentials({ studentId, password, birthYear });
-        return json({ ok: true, username });
+        const { username: u } = await setStudentCredentials({ studentId, username, password });
+        return json({ ok: true, username: u });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "error";
         if (msg === "not_found") return json({ error: "not_found" }, 404);
+        if (msg === "username_taken") return json({ error: "username_taken" }, 409);
         throw e;
       }
     }

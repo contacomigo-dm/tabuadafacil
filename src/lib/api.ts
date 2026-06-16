@@ -175,11 +175,11 @@ export async function teacherResetStudentPassword(studentId: string): Promise<bo
   }
 }
 
-/** Teacher-set student credentials: returns the generated username. */
+/** Teacher-set student credentials: returns the assigned username. */
 export async function teacherSetStudentCredentials(args: {
   studentId: string;
+  username: string;
   password: string;
-  birthYear: number;
 }): Promise<string> {
   const token = getTeacherToken();
   if (!token) throw new Error("no_token");
