@@ -573,62 +573,55 @@ function CredentialsAdminCard({
   onCredentialsSet?: (username: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [password, setPassword] = useState("");
-  const [birthYear, setBirthYear] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const [generatedUsername, setGeneratedUsername] = useState<string | null>(null);
+  const [generated, setGenerated] = useState<{ username: string; password: string } | null>(null);
   const hasPassword = !!student.password_hash;
 
-  const previewUsername = useMemo(() => {
-    const base = buildUsernameBase(student.first_name) || "aluno";
-    const y = birthYear.trim();
-    return y ? `${base}${y}` : `${base}<ano>`;
-  }, [student.first_name, birthYear]);
-
-  function genPassword() {
-    // Generate a memorable password: 3 letters + 3 digits
-    const letters = "abcdefghjkmnpqrstuvwxyz";
-    const digits = "23456789";
-    let pw = "";
-    for (let i = 0; i < 3; i++) pw += letters[Math.floor(Math.random() * letters.length)];
-    for (let i = 0; i < 3; i++) pw += digits[Math.floor(Math.random() * digits.length)];
-    setPassword(pw);
+  function makeCreds() {
+    const initials = (buildUsernameBase(student.first_name) || "aluno").toUpperCase().slice(0, 10);
+    const twoDigits = String(Math.floor(Math.random() * 90) + 10); // 10..99
+    const username = `${initials}${twoDigits}`;
+    const threeDigits = String(Math.floor(Math.random() * 900) + 100); // 100..999
+    return { username, password: threeDigits };
   }
 
-  async function handleSave() {
-    const pwErr = validatePasswordStrength(password);
-    if (pwErr) { toast.error(pwErr); return; }
-    const year = Number(birthYear);
-    const yrErr = validateBirthYear(year);
-    if (yrErr) { toast.error(yrErr); return; }
+  async function handleGenerate() {
     setSaving(true);
-    try {
-      const username = await teacherSetStudentCredentials({
-        studentId: student.id,
-        password,
-        birthYear: year,
-      });
-      setGeneratedUsername(username);
-      onCredentialsSet?.(username);
-      toast.success("Login e senha gerados!");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      if (msg === "weak_password") toast.error("Senha fraca (mín. 6, com letra e número).");
-      else if (msg === "invalid_birth_year") toast.error("Ano de nascimento inválido.");
-      else if (msg === "not_found") toast.error("Aluno não encontrado.");
-      else if (msg === "no_token") {
-        toast.error("Sessão expirada. Faça login novamente.");
-        clearTeacherToken();
-      } else toast.error("Erro ao gerar credenciais: " + (msg || "tente novamente"));
-    } finally {
-      setSaving(false);
+    // Try up to 5 times in case of username collision.
+    let lastErr: unknown = null;
+    for (let i = 0; i < 5; i++) {
+      const creds = makeCreds();
+      try {
+        const username = await teacherSetStudentCredentials({
+          studentId: student.id,
+          username: creds.username,
+          password: creds.password,
+        });
+        setGenerated({ username, password: creds.password });
+        onCredentialsSet?.(username);
+        toast.success("Login e senha gerados!");
+        setSaving(false);
+        return;
+      } catch (e) {
+        lastErr = e;
+        const msg = e instanceof Error ? e.message : "";
+        if (msg !== "username_taken") break;
+      }
     }
+    setSaving(false);
+    const msg = lastErr instanceof Error ? lastErr.message : "";
+    if (msg === "no_token") {
+      toast.error("Sessão expirada. Faça login novamente.");
+      clearTeacherToken();
+    } else if (msg === "not_found") toast.error("Aluno não encontrado.");
+    else if (msg === "username_taken") toast.error("Não foi possível gerar um login único. Tente novamente.");
+    else toast.error("Erro ao gerar credenciais: " + (msg || "tente novamente"));
   }
 
-  function reset() {
-    setPassword("");
-    setBirthYear("");
-    setGeneratedUsername(null);
+  function openAndGenerate() {
+    setGenerated(null);
+    setOpen(true);
+    void handleGenerate();
   }
 
   return (
@@ -643,62 +636,35 @@ function CredentialsAdminCard({
           <>Nenhuma senha cadastrada para este aluno.</>
         )}
       </div>
-      <Button onClick={() => { reset(); setOpen(true); }}>
-        {hasPassword ? "🔄 Trocar login e senha" : "➕ Gerar login e senha"}
+      <Button onClick={openAndGenerate} disabled={saving}>
+        {hasPassword ? "🔄 Gerar novo login e senha" : "➕ Gerar login e senha"}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Gerar login e senha — {student.first_name}</DialogTitle>
+            <DialogTitle>Login e senha — {student.first_name}</DialogTitle>
             <DialogDescription>
-              Os mesmos critérios do cadastro do aluno: senha com pelo menos 6 caracteres, contendo letras e números. O login é gerado a partir do nome + ano de nascimento.
+              Login: iniciais do nome (maiúsculas) + 2 dígitos aleatórios. Senha: 3 dígitos aleatórios.
             </DialogDescription>
           </DialogHeader>
 
-          {generatedUsername ? (
+          {saving && (
+            <div className="text-sm text-muted-foreground">Gerando…</div>
+          )}
+
+          {generated && (
             <div className="space-y-3">
-              <div className="rounded-lg bg-success/10 border border-success/30 p-3">
-                <div className="text-xs uppercase font-bold text-success mb-1">Pronto! Anote para o aluno:</div>
-                <div className="text-sm">Login: <span className="font-mono font-bold">{generatedUsername}</span></div>
-                <div className="text-sm">Senha: <span className="font-mono font-bold">{password}</span></div>
+              <div className="rounded-lg bg-success/10 border border-success/30 p-4">
+                <div className="text-xs uppercase font-bold text-success mb-2">Pronto! Anote para o aluno:</div>
+                <div className="text-base">Login: <span className="font-mono font-extrabold text-lg">{generated.username}</span></div>
+                <div className="text-base">Senha: <span className="font-mono font-extrabold text-lg">{generated.password}</span></div>
               </div>
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => { setOpen(false); reset(); }}>Fechar</Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-semibold">Ano de nascimento</label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="ex: 2015"
-                  value={birthYear}
-                  onChange={(e) => setBirthYear(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Login ficará: <span className="font-mono">{previewUsername}</span>
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-semibold">Senha</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="mín. 6, com letra e número"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <Button type="button" variant="outline" onClick={genPassword}>Sortear</Button>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? "Salvando..." : "Salvar credenciais"}
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => { setGenerated(null); void handleGenerate(); }} disabled={saving}>
+                  🎲 Gerar outro
                 </Button>
+                <Button onClick={() => { setOpen(false); }}>Fechar</Button>
               </DialogFooter>
             </div>
           )}
