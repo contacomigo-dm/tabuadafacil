@@ -133,8 +133,8 @@ async function bcryptHash(password: string): Promise<string> {
 
 async function setStudentCredentials(args: {
   studentId: string;
+  username: string;
   password: string;
-  birthYear: number;
 }): Promise<{ username: string }> {
   const { data: student, error: e1 } = await admin
     .from("students")
@@ -143,19 +143,25 @@ async function setStudentCredentials(args: {
     .maybeSingle();
   if (e1) throw e1;
   if (!student) throw new Error("not_found");
-  const username = await pickAvailableUsername(student.first_name, args.birthYear, student.id);
+  // Check uniqueness (case-insensitive) excluding this student.
+  const { data: clash } = await admin
+    .from("students")
+    .select("id")
+    .ilike("username", args.username)
+    .neq("id", student.id)
+    .maybeSingle();
+  if (clash) throw new Error("username_taken");
   const hash = await bcryptHash(args.password);
   const { error } = await admin
     .from("students")
     .update({
       password_hash: hash,
-      username,
-      birth_year: args.birthYear,
+      username: args.username,
       updated_at: new Date().toISOString(),
     })
     .eq("id", student.id);
   if (error) throw error;
-  return { username };
+  return { username: args.username };
 }
 
 Deno.serve(async (req) => {
