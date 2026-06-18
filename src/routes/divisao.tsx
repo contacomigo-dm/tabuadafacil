@@ -29,14 +29,12 @@ function DivisaoMenu() {
   const [unlocked, setUnlocked] = useState(1);
 
   useEffect(() => {
-    const name = sessionStorage.getItem("studentName");
-    if (!name) {
+    const id = sessionStorage.getItem("studentId");
+    if (!id) {
       setUnlocked(1);
       return;
     }
-    findStudentByName(name)
-      .then((s) => setUnlocked(getDivisionUnlockedLevel(s?.id ?? null)))
-      .catch(() => setUnlocked(1));
+    setUnlocked(getDivisionUnlockedLevel(id));
   }, []);
 
   const startLevel = (lvl: number) => {
