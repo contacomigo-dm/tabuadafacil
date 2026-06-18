@@ -15,7 +15,7 @@ import {
   setDivisionUnlockedLevel,
   type DivisionPlan,
 } from "@/lib/divisao";
-import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
+import { findOrCreateStudent, getStudentById, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
 import {
   generateWeeklyDivSetups,
   saveWeeklyRecord,
