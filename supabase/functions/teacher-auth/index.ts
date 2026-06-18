@@ -86,6 +86,7 @@ async function resetStudentPassword(studentId: string): Promise<void> {
     .from("students")
     .update({
       password_hash: null,
+      password_plain: null,
       username: null,
       birth_year: null,
       favorite_color: null,
