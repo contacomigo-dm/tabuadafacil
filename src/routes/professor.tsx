@@ -1450,3 +1450,121 @@ function DesafioSemanaPorTurma({
 }
 
 
+
+function CredentialsListCard() {
+  const [items, setItems] = useState<CredentialEntry[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const list = await teacherListCredentials();
+      list.sort((a, b) => a.first_name.localeCompare(b.first_name, "pt-BR"));
+      setItems(list);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open && items.length === 0) load();
+  }, [open]);
+
+  const turmaLabel = (s: CredentialEntry) => {
+    const parts = [s.grade, s.class_name, s.shift].filter(Boolean);
+    return parts.length ? parts.join(" · ") : "—";
+  };
+
+  const filtered = items.filter((i) => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      i.first_name.toLowerCase().includes(q) ||
+      i.username.toLowerCase().includes(q) ||
+      (i.class_name ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  const copyAll = async () => {
+    const text = filtered
+      .map((i) => `${i.first_name}\t${turmaLabel(i)}\t${i.username}\t${i.password}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(`Nome\tTurma\tLogin\tSenha\n${text}`);
+      toast.success("Lista copiada para a área de transferência");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  return (
+    <section className="bg-card rounded-2xl p-4 border border-border mb-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h2 className="text-lg font-extrabold text-foreground">🔑 Logins e senhas gerados</h2>
+          <p className="text-sm text-muted-foreground">
+            Lista em ordem alfabética dos alunos com login e senha cadastrados pelo professor.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={load} disabled={loading}>
+            {loading ? "Carregando..." : "Atualizar"}
+          </Button>
+          <Button onClick={() => setOpen((o) => !o)}>
+            {open ? "Ocultar" : "Mostrar lista"}
+          </Button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="🔎 Filtrar por nome, login ou turma..."
+              className="h-9 max-w-sm"
+            />
+            <Button variant="outline" onClick={copyAll} disabled={filtered.length === 0}>
+              📋 Copiar tudo
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {filtered.length} de {items.length}
+            </span>
+          </div>
+
+          {items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum aluno com credenciais geradas ainda. Use o botão "Gerar login e senha" no painel do aluno.
+            </p>
+          ) : (
+            <div className="overflow-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-left">
+                    <th className="px-3 py-2 font-bold">Nome</th>
+                    <th className="px-3 py-2 font-bold">Turma</th>
+                    <th className="px-3 py-2 font-bold">Login</th>
+                    <th className="px-3 py-2 font-bold">Senha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((i) => (
+                    <tr key={i.id} className="border-t border-border">
+                      <td className="px-3 py-2 font-semibold">{i.first_name}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{turmaLabel(i)}</td>
+                      <td className="px-3 py-2 font-mono">{i.username}</td>
+                      <td className="px-3 py-2 font-mono">{i.password}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
