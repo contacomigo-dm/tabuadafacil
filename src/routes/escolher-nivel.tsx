@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { findOrCreateStudent } from "@/lib/api";
+import { findOrCreateStudent, getStudentById } from "@/lib/api";
 import { LEVELS, getLevel } from "@/lib/quiz";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
