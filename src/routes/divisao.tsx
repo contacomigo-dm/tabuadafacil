@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DIVISION_LEVELS, getDivisionUnlockedLevel } from "@/lib/divisao";
-import { findStudentByName } from "@/lib/api";
+
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/divisao")({
