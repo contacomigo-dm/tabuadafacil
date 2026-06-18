@@ -255,6 +255,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (action === "list_credentials") {
+      const token = String(body.token ?? "");
+      if (!(await verifyToken(token))) return json({ error: "unauthorized" }, 401);
+      const list = await listCredentials();
+      return json({ list });
+    }
+
     return json({ error: "unknown_action" }, 400);
   } catch (e) {
     console.error(e);
