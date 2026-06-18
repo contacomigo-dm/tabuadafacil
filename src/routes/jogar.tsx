@@ -78,7 +78,7 @@ function PlayPage() {
     }
     setStudentName(name);
     (async () => {
-      const student = await findOrCreateStudent(name);
+      const student = (await getStudentById(id)) ?? (await findOrCreateStudent(name));
       setStudentId(student.id);
       setMaxLevelReached(student.current_level);
       const chosenRaw = sessionStorage.getItem("chosenLevel");
