@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { findOrCreateStudent } from "@/lib/api";
+import { findOrCreateStudent, getStudentById } from "@/lib/api";
 import { LEVELS, getLevel } from "@/lib/quiz";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -21,12 +21,13 @@ function ChooseLevelPage() {
 
   useEffect(() => {
     const storedName = sessionStorage.getItem("studentName");
+    const storedId = sessionStorage.getItem("studentId");
     if (!storedName) {
       navigate({ to: "/aluno" });
       return;
     }
     setName(storedName);
-    findOrCreateStudent(storedName)
+    (storedId ? getStudentById(storedId).then((s) => s ?? findOrCreateStudent(storedName)) : findOrCreateStudent(storedName))
       .then((s) => {
         setCurrentLevel(s.current_level);
         setLoading(false);

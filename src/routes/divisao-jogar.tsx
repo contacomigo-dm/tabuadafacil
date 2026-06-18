@@ -15,7 +15,7 @@ import {
   setDivisionUnlockedLevel,
   type DivisionPlan,
 } from "@/lib/divisao";
-import { findOrCreateStudent, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
+import { findOrCreateStudent, getStudentById, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
 import {
   generateWeeklyDivSetups,
   saveWeeklyRecord,
@@ -112,9 +112,11 @@ function PlayDivisao() {
 
   useEffect(() => {
     const name = sessionStorage.getItem("studentName");
-    if (!name) return;
+    const id = sessionStorage.getItem("studentId");
+    if (!name && !id) return;
     (async () => {
-      const student = await findOrCreateStudent(name);
+      const student = (id ? await getStudentById(id) : null) ?? (name ? await findOrCreateStudent(name) : null);
+      if (!student) return;
       setStudentId(student.id);
       totalCorrectRef.current = student.total_correct;
       totalWrongRef.current = student.total_wrong;
