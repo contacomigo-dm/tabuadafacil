@@ -13,6 +13,7 @@ import {
   startSession,
   updateSession,
   updateStudent,
+  getStudentById,
   findOrCreateStudent,
 } from "@/lib/api";
 import { toast } from "sonner";
