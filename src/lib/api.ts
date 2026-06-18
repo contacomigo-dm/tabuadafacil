@@ -192,7 +192,41 @@ export async function teacherSetStudentCredentials(args: {
   return res.username;
 }
 
+export interface CredentialEntry {
+  id: string;
+  first_name: string;
+  grade: string | null;
+  class_name: string | null;
+  shift: string | null;
+  username: string;
+  password: string;
+}
+
+export async function teacherListCredentials(): Promise<CredentialEntry[]> {
+  const token = getTeacherToken();
+  if (!token) return [];
+  try {
+    const res = await callFn<{ list?: CredentialEntry[] }>("teacher-auth", {
+      action: "list_credentials",
+      token,
+    });
+    return res?.list ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getStudentById(id: string): Promise<Student | null> {
+  const { data } = await supabase
+    .from("students")
+    .select(SAFE_COLS)
+    .eq("id", id)
+    .maybeSingle();
+  return (data as Student | null) ?? null;
+}
+
 // --- Student auth -----------------------------------------------------------
+
 
 /** Server-side login: returns the safe student record on success, null otherwise. */
 export async function studentLogin(username: string, password: string): Promise<Student | null> {
