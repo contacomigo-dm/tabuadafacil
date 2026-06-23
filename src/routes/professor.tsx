@@ -1301,8 +1301,26 @@ function DesafioSemanaPorTurma({
   const [filter, setFilter] = useState<string>("__all__");
   const [records, setRecords] = useState<WeeklyRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [onlyDone, setOnlyDone] = useState(false);
 
-  const { year, week } = useMemo(() => getISOWeek(), []);
+  const current = useMemo(() => getISOWeek(), []);
+  const [year, setYear] = useState<number>(current.year);
+  const [week, setWeek] = useState<number>(current.week);
+
+  const changeWeek = (delta: number) => {
+    let w = week + delta;
+    let y = year;
+    if (w < 1) {
+      y -= 1;
+      w = 52;
+    } else if (w > 53) {
+      y += 1;
+      w = 1;
+    }
+    setYear(y);
+    setWeek(w);
+    setOnlyDone(!(y === current.year && w === current.week));
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -1328,13 +1346,18 @@ function DesafioSemanaPorTurma({
     return map;
   }, [records]);
 
-  const filteredStudents = useMemo(() => {
-    if (filter === "__all__") return students;
-    return students.filter((s) => turmaKeyOf(s) === filter);
-  }, [students, filter]);
+  const turmaScope = useMemo(
+    () => (filter === "__all__" ? students : students.filter((s) => turmaKeyOf(s) === filter)),
+    [students, filter],
+  );
 
-  const doneCount = filteredStudents.filter((s) => recordsByStudent.has(s.id)).length;
-  const totalCount = filteredStudents.length;
+  const filteredStudents = useMemo(() => {
+    return onlyDone ? turmaScope.filter((s) => recordsByStudent.has(s.id)) : turmaScope;
+  }, [turmaScope, onlyDone, recordsByStudent]);
+
+  const doneCount = turmaScope.filter((s) => recordsByStudent.has(s.id)).length;
+  const totalCount = turmaScope.length;
+  const isCurrent = year === current.year && week === current.week;
 
   return (
     <div className="bg-card rounded-2xl border border-border mb-6">
@@ -1345,13 +1368,81 @@ function DesafioSemanaPorTurma({
       >
         <span className="text-lg font-extrabold flex items-center gap-2">
           🏆 Desafio da Semana — Semana {week}/{year}
+          {isCurrent && <span className="text-xs font-normal text-muted-foreground">(atual)</span>}
         </span>
         <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
       </button>
       {open && (
         <div className="px-4 pb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => changeWeek(-1)}
+              className="px-3 py-1.5 rounded-full text-sm font-semibold border border-border bg-background hover:border-primary"
+            >
+              ← Semana anterior
+            </button>
+            <div className="flex items-center gap-1 text-sm">
+              <span className="text-muted-foreground">Semana</span>
+              <input
+                type="number"
+                min={1}
+                max={53}
+                value={week}
+                onChange={(e) => {
+                  const v = Math.max(1, Math.min(53, Number(e.target.value) || 1));
+                  setWeek(v);
+                  setOnlyDone(!(year === current.year && v === current.week));
+                }}
+                className="w-16 px-2 py-1 rounded-md border border-border bg-background text-center font-bold"
+              />
+              <span className="text-muted-foreground">de</span>
+              <input
+                type="number"
+                min={2024}
+                max={2100}
+                value={year}
+                onChange={(e) => {
+                  const v = Number(e.target.value) || current.year;
+                  setYear(v);
+                  setOnlyDone(!(v === current.year && week === current.week));
+                }}
+                className="w-20 px-2 py-1 rounded-md border border-border bg-background text-center font-bold"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => changeWeek(1)}
+              className="px-3 py-1.5 rounded-full text-sm font-semibold border border-border bg-background hover:border-primary"
+            >
+              Semana seguinte →
+            </button>
+            {!isCurrent && (
+              <button
+                type="button"
+                onClick={() => {
+                  setYear(current.year);
+                  setWeek(current.week);
+                  setOnlyDone(false);
+                }}
+                className="px-3 py-1.5 rounded-full text-sm font-semibold border border-primary text-primary hover:bg-primary/10"
+              >
+                Ir para semana atual
+              </button>
+            )}
+            <label className="flex items-center gap-1.5 text-sm font-semibold ml-auto cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onlyDone}
+                onChange={(e) => setOnlyDone(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              Somente quem fez
+            </label>
+          </div>
           <p className="text-sm text-muted-foreground mb-3">
-            Veja quem já fez o desafio obrigatório desta semana. {doneCount} de {totalCount} aluno(s) concluíram.
+            {doneCount} de {totalCount} aluno(s) concluíram a semana {week}/{year}
+            {filter !== "__all__" ? ` na turma ${filter}` : ""}.
           </p>
           <div className="flex flex-wrap gap-2 mb-3">
             <button
