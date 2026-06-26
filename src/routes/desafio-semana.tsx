@@ -215,10 +215,17 @@ function DesafioSemana() {
 
         {phase === "intro" && (
           <div className="bg-card rounded-3xl p-6 border border-border text-center">
+            {isPast && (
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1 text-xs font-bold text-foreground">
+                🗓️ Treinando semana {week}/{year} (semana anterior)
+              </div>
+            )}
             {existingRecord ? (
               <>
                 <p className="text-foreground font-bold text-lg mb-1">
-                  Você já fez o desafio desta semana! 🎉
+                  {isPast
+                    ? `Você já fez o desafio da semana ${week}! 🎉`
+                    : "Você já fez o desafio desta semana! 🎉"}
                 </p>
                 <p className="text-muted-foreground mb-4">
                   Acertos: <span className="text-success font-bold">{existingRecord.correct_count}</span>{" "}
@@ -243,6 +250,76 @@ function DesafioSemana() {
             >
               {existingRecord ? "Refazer o desafio" : "▶ Começar agora"}
             </Button>
+
+            {/* Semanas anteriores para treinar / recuperar */}
+            {current.week > 1 && (
+              <div className="mt-6 text-left">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-bold text-foreground">
+                    📚 Semanas anteriores ({current.year})
+                  </h2>
+                  {isPast && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setYear(current.year);
+                        setWeek(current.week);
+                      }}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Voltar à semana atual
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Toque em uma semana para treiná-la. As contas são as mesmas que toda a turma fez
+                  naquela semana. Semanas com ⭐ você já completou.
+                </p>
+                <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
+                  {Array.from({ length: current.week - 1 }, (_, i) => i + 1).map((w) => {
+                    const done = history.some((r) => r.year === current.year && r.week === w);
+                    const active = year === current.year && week === w;
+                    return (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => {
+                          setYear(current.year);
+                          setWeek(w);
+                        }}
+                        className={cn(
+                          "rounded-xl border px-2 py-2 text-sm font-bold text-center transition",
+                          active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : done
+                              ? "bg-success/15 border-success/30 text-success hover:bg-success/25"
+                              : "bg-secondary/60 border-border hover:border-primary",
+                        )}
+                        title={done ? `Semana ${w} concluída` : `Semana ${w}`}
+                      >
+                        {done && "⭐ "}S{w}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setYear(current.year);
+                      setWeek(current.week);
+                    }}
+                    className={cn(
+                      "rounded-xl border px-2 py-2 text-sm font-bold text-center transition",
+                      !isPast
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-accent/20 border-accent/40 text-foreground hover:border-accent",
+                    )}
+                    title="Semana atual"
+                  >
+                    Atual
+                  </button>
+                </div>
+              </div>
+            )}
 
             {history.length > 0 && (
               <div className="mt-6 text-left">
