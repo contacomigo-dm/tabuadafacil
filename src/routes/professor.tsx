@@ -717,6 +717,27 @@ function ActivityPanel({
     return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
   }, [data]);
 
+  // Evolução por sessão (cada "desafio"/rodada que o aluno fez) em ordem cronológica.
+  const perSession = useMemo(() => {
+    if (!data) return [];
+    const ordered = [...data.sessions].sort(
+      (a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime(),
+    );
+    return ordered.map((s, i) => {
+      const total = s.correct_count + s.wrong_count;
+      const pct = total > 0 ? Math.round((s.correct_count / total) * 100) : 0;
+      const d = new Date(s.started_at);
+      return {
+        idx: i + 1,
+        label: `#${i + 1}`,
+        date: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+        acertos: s.correct_count,
+        erros: s.wrong_count,
+        pct,
+      };
+    });
+  }, [data]);
+
   const totalResp = (data?.totalCorrect ?? 0) + (data?.totalWrong ?? 0);
   const pct = totalResp > 0 ? Math.round(((data?.totalCorrect ?? 0) / totalResp) * 100) : 0;
 
@@ -730,6 +751,39 @@ function ActivityPanel({
           <Card label="% acerto" value={`${pct}%`} />
           <Card label="Sessões" value={data?.sessions.length ?? 0} />
         </div>
+      </div>
+
+      <div className="bg-card rounded-2xl p-6 border border-border">
+        <h3 className="text-lg font-bold mb-1">Evolução por sessão — {label}</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Cada ponto é uma rodada/desafio feita pelo aluno, em ordem cronológica. A linha mostra a
+          % de acerto.
+        </p>
+        {perSession.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Sem dados ainda.</p>
+        ) : (
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={perSession} margin={{ top: 10, right: 20, left: 0, bottom: 0 }} barCategoryGap="20%" barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 12 }} allowDecimals={false} width={30} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} domain={[0, 100]} width={36} unit="%" />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12 }}
+                  labelFormatter={(_, payload) => {
+                    const p = payload?.[0]?.payload as { label: string; date: string } | undefined;
+                    return p ? `Sessão ${p.label} — ${p.date}` : "";
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar yAxisId="left" dataKey="acertos" name="Acertos" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
+                <Bar yAxisId="left" dataKey="erros" name="Erros" fill="hsl(var(--warning))" radius={[6, 6, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="pct" name="% acerto" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-2xl p-6 border border-border">
