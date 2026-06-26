@@ -42,7 +42,10 @@ function DesafioSemana() {
   const [timeLeft, setTimeLeft] = useState(WEEKLY_MULT_TIMER);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { year, week } = useMemo(() => getISOWeek(), []);
+  const current = useMemo(() => getISOWeek(), []);
+  const [year, setYear] = useState<number>(current.year);
+  const [week, setWeek] = useState<number>(current.week);
+  const isPast = year !== current.year || week !== current.week;
   const multProblems = useMemo(() => generateWeeklyProblems(year, week), [year, week]);
 
   useEffect(() => {
@@ -55,22 +58,28 @@ function DesafioSemana() {
     setStudentId(id);
     setStudentName(name ?? "");
     (async () => {
-      const rec = await getWeeklyRecord(id, year, week);
-      setExistingRecord(rec);
       const all = await listWeeklyRecords(id);
       setHistory(all);
       setStreak(computeStreak(all));
-      // Se acabou de voltar da divisão semanal, mostra a tela "done"
       if (sessionStorage.getItem("weeklyJustFinished") === "1") {
+        const fy = Number(sessionStorage.getItem("weeklyYear") || current.year);
+        const fw = Number(sessionStorage.getItem("weeklyWeek") || current.week);
         sessionStorage.removeItem("weeklyJustFinished");
+        setYear(fy);
+        setWeek(fw);
+        const rec = await getWeeklyRecord(id, fy, fw);
+        setExistingRecord(rec);
         if (rec) {
           setCorrect(rec.correct_count);
           setWrong(rec.wrong_count);
           setPhase("done");
         }
+      } else {
+        const rec = await getWeeklyRecord(id, year, week);
+        setExistingRecord(rec);
       }
     })().catch(() => {});
-  }, [navigate, year, week]);
+  }, [navigate, year, week, current.year, current.week]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
