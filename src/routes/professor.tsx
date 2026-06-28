@@ -1356,6 +1356,14 @@ function DesafioSemanaPorTurma({
   const [records, setRecords] = useState<WeeklyRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [onlyDone, setOnlyDone] = useState(false);
+  const [suspendedSet, setSuspendedSet] = useState<Set<string>>(new Set());
+  const [togglingTurma, setTogglingTurma] = useState<string | null>(null);
+
+  const refreshSuspended = useCallback(() => {
+    listSuspendedTurmas()
+      .then((arr) => setSuspendedSet(new Set(arr)))
+      .catch(() => {});
+  }, []);
 
   const current = useMemo(() => getISOWeek(), []);
   const [year, setYear] = useState<number>(current.year);
