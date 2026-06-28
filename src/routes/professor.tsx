@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { teacherLogin, teacherVerify, teacherChangePassword, teacherResetStudentPassword, teacherSetStudentCredentials, teacherListCredentials, getTeacherToken, clearTeacherToken, listStudents, getStudentStats, deleteStudent, getOverallRanking, createStudentsRoster, validatePasswordStrength, validateBirthYear, buildUsernameBase, type Student, type TableStat, type RankingEntry, type CredentialEntry } from "@/lib/api";
+import { teacherLogin, teacherVerify, teacherChangePassword, teacherResetStudentPassword, teacherSetStudentCredentials, teacherListCredentials, getTeacherToken, clearTeacherToken, listStudents, getStudentStats, deleteStudent, getOverallRanking, createStudentsRoster, validatePasswordStrength, validateBirthYear, buildUsernameBase, listSuspendedTurmas, setTurmaSuspended, type Student, type TableStat, type RankingEntry, type CredentialEntry } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
