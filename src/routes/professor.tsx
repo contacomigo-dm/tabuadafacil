@@ -1552,6 +1552,41 @@ function DesafioSemanaPorTurma({
             ))}
           </div>
 
+          <div className="mb-4 rounded-xl border border-border bg-secondary/40 p-3">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+              <span className="text-sm font-bold">🔒 Liberar / Suspender desafio por turma</span>
+              <span className="text-xs text-muted-foreground">
+                Suspensas: {suspendedSet.size} de {turmas.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {turmas.length === 0 && (
+                <span className="text-xs text-muted-foreground">Nenhuma turma cadastrada.</span>
+              )}
+              {turmas.map((t) => {
+                const isSusp = suspendedSet.has(t);
+                const busy = togglingTurma === t;
+                return (
+                  <button
+                    key={`susp-${t}`}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => toggleSuspension(t)}
+                    title={isSusp ? "Clique para LIBERAR" : "Clique para SUSPENDER"}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-bold border transition disabled:opacity-50",
+                      isSusp
+                        ? "bg-destructive/15 border-destructive/40 text-destructive hover:bg-destructive/25"
+                        : "bg-success/15 border-success/40 text-success hover:bg-success/25",
+                    )}
+                  >
+                    {isSusp ? `🚫 ${t} — suspenso (liberar)` : `✅ ${t} — liberado (suspender)`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {loading ? (
             <p className="text-sm text-muted-foreground">Carregando…</p>
           ) : filteredStudents.length === 0 ? (
