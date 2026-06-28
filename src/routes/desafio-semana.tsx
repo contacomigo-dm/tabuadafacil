@@ -60,9 +60,18 @@ function DesafioSemana() {
     setStudentId(id);
     setStudentName(name ?? "");
     (async () => {
-      const all = await listWeeklyRecords(id);
+      const [all, student, suspendedList] = await Promise.all([
+        listWeeklyRecords(id),
+        getStudentById(id),
+        listSuspendedTurmas(),
+      ]);
       setHistory(all);
       setStreak(computeStreak(all));
+      if (student) {
+        const key = turmaKeyFor(student.grade, student.class_name);
+        setTurmaLabel(key);
+        setSuspended(suspendedList.includes(key));
+      }
       if (sessionStorage.getItem("weeklyJustFinished") === "1") {
         const fy = Number(sessionStorage.getItem("weeklyYear") || current.year);
         const fw = Number(sessionStorage.getItem("weeklyWeek") || current.week);
