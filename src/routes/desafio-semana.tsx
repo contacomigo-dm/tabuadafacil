@@ -162,6 +162,10 @@ function DesafioSemana() {
   }, [phase, index, locked, clearTimer, handleMultAnswer]);
 
   const start = () => {
+    if (suspended) {
+      toast.error("O desafio está suspenso para a sua turma. Fale com o professor.");
+      return;
+    }
     setIndex(0);
     setCorrect(0);
     setWrong(0);
