@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { teacherLogin, teacherVerify, teacherChangePassword, teacherResetStudentPassword, teacherSetStudentCredentials, teacherListCredentials, getTeacherToken, clearTeacherToken, listStudents, getStudentStats, deleteStudent, getOverallRanking, createStudentsRoster, validatePasswordStrength, validateBirthYear, buildUsernameBase, type Student, type TableStat, type RankingEntry, type CredentialEntry } from "@/lib/api";
+import { teacherLogin, teacherVerify, teacherChangePassword, teacherResetStudentPassword, teacherSetStudentCredentials, teacherListCredentials, getTeacherToken, clearTeacherToken, listStudents, getStudentStats, deleteStudent, getOverallRanking, createStudentsRoster, validatePasswordStrength, validateBirthYear, buildUsernameBase, listSuspendedTurmas, setTurmaSuspended, type Student, type TableStat, type RankingEntry, type CredentialEntry } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -1356,6 +1356,14 @@ function DesafioSemanaPorTurma({
   const [records, setRecords] = useState<WeeklyRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [onlyDone, setOnlyDone] = useState(false);
+  const [suspendedSet, setSuspendedSet] = useState<Set<string>>(new Set());
+  const [togglingTurma, setTogglingTurma] = useState<string | null>(null);
+
+  const refreshSuspended = useCallback(() => {
+    listSuspendedTurmas()
+      .then((arr) => setSuspendedSet(new Set(arr)))
+      .catch(() => {});
+  }, []);
 
   const current = useMemo(() => getISOWeek(), []);
   const [year, setYear] = useState<number>(current.year);
@@ -1384,6 +1392,24 @@ function DesafioSemanaPorTurma({
       .catch(() => toast.error("Erro ao carregar desafios da semana"))
       .finally(() => setLoading(false));
   }, [open, year, week]);
+
+  useEffect(() => {
+    if (open) refreshSuspended();
+  }, [open, refreshSuspended]);
+
+  const toggleSuspension = async (turma: string) => {
+    const willSuspend = !suspendedSet.has(turma);
+    setTogglingTurma(turma);
+    try {
+      await setTurmaSuspended(turma, willSuspend);
+      toast.success(willSuspend ? `Desafio suspenso para ${turma}` : `Desafio liberado para ${turma}`);
+      refreshSuspended();
+    } catch {
+      toast.error("Não foi possível atualizar a suspensão");
+    } finally {
+      setTogglingTurma(null);
+    }
+  };
 
   const turmaKeyOf = (s: { grade: string | null; class_name: string | null }) =>
     s.class_name?.trim() ? `${s.grade ?? ""} ${s.class_name}`.trim() : (s.grade ?? "Sem turma");
@@ -1524,6 +1550,41 @@ function DesafioSemanaPorTurma({
                 {t}
               </button>
             ))}
+          </div>
+
+          <div className="mb-4 rounded-xl border border-border bg-secondary/40 p-3">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+              <span className="text-sm font-bold">🔒 Liberar / Suspender desafio por turma</span>
+              <span className="text-xs text-muted-foreground">
+                Suspensas: {suspendedSet.size} de {turmas.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {turmas.length === 0 && (
+                <span className="text-xs text-muted-foreground">Nenhuma turma cadastrada.</span>
+              )}
+              {turmas.map((t) => {
+                const isSusp = suspendedSet.has(t);
+                const busy = togglingTurma === t;
+                return (
+                  <button
+                    key={`susp-${t}`}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => toggleSuspension(t)}
+                    title={isSusp ? "Clique para LIBERAR" : "Clique para SUSPENDER"}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-bold border transition disabled:opacity-50",
+                      isSusp
+                        ? "bg-destructive/15 border-destructive/40 text-destructive hover:bg-destructive/25"
+                        : "bg-success/15 border-success/40 text-success hover:bg-success/25",
+                    )}
+                  >
+                    {isSusp ? `🚫 ${t} — suspenso (liberar)` : `✅ ${t} — liberado (suspender)`}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {loading ? (

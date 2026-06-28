@@ -216,6 +216,36 @@ export async function teacherListCredentials(): Promise<CredentialEntry[]> {
   }
 }
 
+// --- Weekly challenge suspensions (per turma) ------------------------------
+
+export function turmaKeyFor(grade: string | null, className: string | null): string {
+  return className?.trim()
+    ? `${grade ?? ""} ${className}`.trim()
+    : (grade ?? "Sem turma");
+}
+
+export async function listSuspendedTurmas(): Promise<string[]> {
+  const { data } = await supabase
+    .from("weekly_challenge_suspensions" as never)
+    .select("turma_key");
+  return ((data ?? []) as { turma_key: string }[]).map((r) => r.turma_key);
+}
+
+export async function setTurmaSuspended(turmaKey: string, suspended: boolean): Promise<void> {
+  if (suspended) {
+    const { error } = await supabase
+      .from("weekly_challenge_suspensions" as never)
+      .upsert({ turma_key: turmaKey } as never);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("weekly_challenge_suspensions" as never)
+      .delete()
+      .eq("turma_key", turmaKey);
+    if (error) throw error;
+  }
+}
+
 export async function getStudentById(id: string): Promise<Student | null> {
   const { data } = await supabase
     .from("students")

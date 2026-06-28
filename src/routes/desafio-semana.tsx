@@ -15,7 +15,7 @@ import {
   listWeeklyRecords,
   type WeeklyRecord,
 } from "@/lib/weekly";
-import { logAttempt } from "@/lib/api";
+import { getStudentById, listSuspendedTurmas, logAttempt, turmaKeyFor } from "@/lib/api";
 
 export const Route = createFileRoute("/desafio-semana")({
   head: () => ({
@@ -40,6 +40,8 @@ function DesafioSemana() {
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<WeeklyRecord[]>([]);
   const [timeLeft, setTimeLeft] = useState(WEEKLY_MULT_TIMER);
+  const [suspended, setSuspended] = useState(false);
+  const [turmaLabel, setTurmaLabel] = useState<string>("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const current = useMemo(() => getISOWeek(), []);
@@ -58,9 +60,18 @@ function DesafioSemana() {
     setStudentId(id);
     setStudentName(name ?? "");
     (async () => {
-      const all = await listWeeklyRecords(id);
+      const [all, student, suspendedList] = await Promise.all([
+        listWeeklyRecords(id),
+        getStudentById(id),
+        listSuspendedTurmas(),
+      ]);
       setHistory(all);
       setStreak(computeStreak(all));
+      if (student) {
+        const key = turmaKeyFor(student.grade, student.class_name);
+        setTurmaLabel(key);
+        setSuspended(suspendedList.includes(key));
+      }
       if (sessionStorage.getItem("weeklyJustFinished") === "1") {
         const fy = Number(sessionStorage.getItem("weeklyYear") || current.year);
         const fw = Number(sessionStorage.getItem("weeklyWeek") || current.week);
@@ -160,6 +171,10 @@ function DesafioSemana() {
   }, [phase, index, locked, clearTimer, handleMultAnswer]);
 
   const start = () => {
+    if (suspended) {
+      toast.error("O desafio está suspenso para a sua turma. Fale com o professor.");
+      return;
+    }
     setIndex(0);
     setCorrect(0);
     setWrong(0);
@@ -215,6 +230,14 @@ function DesafioSemana() {
 
         {phase === "intro" && (
           <div className="bg-card rounded-3xl p-6 border border-border text-center">
+            {suspended && (
+              <div className="mb-4 rounded-2xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm font-bold text-destructive">
+                🚫 O desafio semanal está <u>suspenso</u> para a turma {turmaLabel || "—"}.
+                <div className="font-normal text-xs mt-1 text-destructive/80">
+                  Aguarde o professor liberar para você poder participar.
+                </div>
+              </div>
+            )}
             {isPast && (
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1 text-xs font-bold text-foreground">
                 🗓️ Treinando semana {week}/{year} (semana anterior)
@@ -246,9 +269,10 @@ function DesafioSemana() {
             )}
             <Button
               onClick={start}
+              disabled={suspended}
               className="btn-pop h-14 w-full text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
             >
-              {existingRecord ? "Refazer o desafio" : "▶ Começar agora"}
+              {suspended ? "🚫 Desafio suspenso" : existingRecord ? "Refazer o desafio" : "▶ Começar agora"}
             </Button>
 
             {/* Semanas anteriores para treinar / recuperar */}

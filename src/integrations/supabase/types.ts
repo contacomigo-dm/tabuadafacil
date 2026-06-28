@@ -197,6 +197,21 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_challenge_suspensions: {
+        Row: {
+          created_at: string
+          turma_key: string
+        }
+        Insert: {
+          created_at?: string
+          turma_key: string
+        }
+        Update: {
+          created_at?: string
+          turma_key?: string
+        }
+        Relationships: []
+      }
       weekly_challenges: {
         Row: {
           completed_at: string
