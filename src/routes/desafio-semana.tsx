@@ -15,7 +15,7 @@ import {
   listWeeklyRecords,
   type WeeklyRecord,
 } from "@/lib/weekly";
-import { logAttempt } from "@/lib/api";
+import { getStudentById, listSuspendedTurmas, logAttempt, turmaKeyFor } from "@/lib/api";
 
 export const Route = createFileRoute("/desafio-semana")({
   head: () => ({
