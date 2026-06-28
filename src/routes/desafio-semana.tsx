@@ -40,6 +40,8 @@ function DesafioSemana() {
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState<WeeklyRecord[]>([]);
   const [timeLeft, setTimeLeft] = useState(WEEKLY_MULT_TIMER);
+  const [suspended, setSuspended] = useState(false);
+  const [turmaLabel, setTurmaLabel] = useState<string>("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const current = useMemo(() => getISOWeek(), []);
