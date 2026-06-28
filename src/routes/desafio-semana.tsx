@@ -269,9 +269,10 @@ function DesafioSemana() {
             )}
             <Button
               onClick={start}
+              disabled={suspended}
               className="btn-pop h-14 w-full text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
             >
-              {existingRecord ? "Refazer o desafio" : "▶ Começar agora"}
+              {suspended ? "🚫 Desafio suspenso" : existingRecord ? "Refazer o desafio" : "▶ Começar agora"}
             </Button>
 
             {/* Semanas anteriores para treinar / recuperar */}
