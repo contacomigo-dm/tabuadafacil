@@ -1393,6 +1393,24 @@ function DesafioSemanaPorTurma({
       .finally(() => setLoading(false));
   }, [open, year, week]);
 
+  useEffect(() => {
+    if (open) refreshSuspended();
+  }, [open, refreshSuspended]);
+
+  const toggleSuspension = async (turma: string) => {
+    const willSuspend = !suspendedSet.has(turma);
+    setTogglingTurma(turma);
+    try {
+      await setTurmaSuspended(turma, willSuspend);
+      toast.success(willSuspend ? `Desafio suspenso para ${turma}` : `Desafio liberado para ${turma}`);
+      refreshSuspended();
+    } catch {
+      toast.error("Não foi possível atualizar a suspensão");
+    } finally {
+      setTogglingTurma(null);
+    }
+  };
+
   const turmaKeyOf = (s: { grade: string | null; class_name: string | null }) =>
     s.class_name?.trim() ? `${s.grade ?? ""} ${s.class_name}`.trim() : (s.grade ?? "Sem turma");
 
