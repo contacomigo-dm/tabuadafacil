@@ -230,6 +230,14 @@ function DesafioSemana() {
 
         {phase === "intro" && (
           <div className="bg-card rounded-3xl p-6 border border-border text-center">
+            {suspended && (
+              <div className="mb-4 rounded-2xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm font-bold text-destructive">
+                🚫 O desafio semanal está <u>suspenso</u> para a turma {turmaLabel || "—"}.
+                <div className="font-normal text-xs mt-1 text-destructive/80">
+                  Aguarde o professor liberar para você poder participar.
+                </div>
+              </div>
+            )}
             {isPast && (
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1 text-xs font-bold text-foreground">
                 🗓️ Treinando semana {week}/{year} (semana anterior)
