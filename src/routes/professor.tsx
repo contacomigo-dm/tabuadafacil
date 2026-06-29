@@ -506,42 +506,103 @@ function StudentDetail({
 
 
       {/* Desafio da Semana */}
-      <div className="bg-card rounded-2xl p-6 border border-border">
-        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-          <span>🏆</span> Desafio da Semana
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card
-            label={`Semana ${week} de ${year}`}
-            value={currentWeekRecord ? `✅ ${currentWeekRecord.correct_count}/${currentWeekRecord.total_questions}` : "⏳ Não feito"}
-            color={currentWeekRecord ? "text-success" : "text-muted-foreground"}
-          />
-          <Card label="Streak (semanas)" value={streak} color="text-primary" />
-          <Card label="Selos conquistados" value={weeklyRecords?.length ?? 0} color="text-accent" />
-        </div>
-        {weeklyRecords && weeklyRecords.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Histórico de selos
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {weeklyRecords.slice(0, 12).map((r) => (
-                <span
-                  key={r.id}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold",
-                    r.year === year && r.week === week
-                      ? "bg-success/15 border-success/30 text-success"
-                      : "bg-accent/20 border-accent/40 text-foreground"
-                  )}
-                >
-                  ⭐ S{r.week}/{r.year} · {r.correct_count}/{r.total_questions}
-                </span>
-              ))}
+      {(() => {
+        const recs = weeklyRecords ?? [];
+        const totalCorrect = recs.reduce((s, r) => s + r.correct_count, 0);
+        const totalWrong = recs.reduce((s, r) => s + r.wrong_count, 0);
+        const totalQ = recs.reduce((s, r) => s + r.total_questions, 0);
+        const avgPct = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+        const bestPct = recs.reduce((m, r) => {
+          const p = r.total_questions > 0 ? (r.correct_count / r.total_questions) * 100 : 0;
+          return p > m ? p : m;
+        }, 0);
+        const sorted = [...recs].sort((a, b) =>
+          a.year !== b.year ? b.year - a.year : b.week - a.week
+        );
+        return (
+          <div className="bg-card rounded-2xl p-6 border border-border">
+            <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+              <span>🏆</span> Desafio da Semana
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <Card
+                label={`Semana ${week} de ${year}`}
+                value={currentWeekRecord ? `✅ ${currentWeekRecord.correct_count}/${currentWeekRecord.total_questions}` : "⏳ Não feito"}
+                color={currentWeekRecord ? "text-success" : "text-muted-foreground"}
+              />
+              <Card label="Streak (semanas)" value={streak} color="text-primary" />
+              <Card label="Selos conquistados" value={recs.length} color="text-accent" />
+              <Card label="Total de acertos" value={totalCorrect} color="text-success" />
+              <Card label="Total de erros" value={totalWrong} color="text-warning" />
+              <Card label="Aproveitamento médio" value={`${avgPct}%`} color="text-primary" />
             </div>
+
+            {recs.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Desempenho por semana ({recs.length})
+                  </h4>
+                  <span className="text-xs text-muted-foreground">
+                    Melhor: <b className="text-success">{Math.round(bestPct)}%</b>
+                  </span>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/60 text-xs uppercase tracking-wider text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-3 py-2">Semana</th>
+                        <th className="text-left px-3 py-2">Data</th>
+                        <th className="text-right px-3 py-2">Acertos</th>
+                        <th className="text-right px-3 py-2">Erros</th>
+                        <th className="text-right px-3 py-2">Total</th>
+                        <th className="text-right px-3 py-2">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sorted.map((r) => {
+                        const pct = r.total_questions > 0
+                          ? Math.round((r.correct_count / r.total_questions) * 100)
+                          : 0;
+                        const isCurrent = r.year === year && r.week === week;
+                        const dt = r.completed_at
+                          ? new Date(r.completed_at).toLocaleDateString("pt-BR")
+                          : "—";
+                        return (
+                          <tr
+                            key={r.id}
+                            className={cn(
+                              "border-t border-border",
+                              isCurrent && "bg-success/10"
+                            )}
+                          >
+                            <td className="px-3 py-2 font-bold">
+                              {isCurrent && "⭐ "}S{r.week}/{r.year}
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">{dt}</td>
+                            <td className="px-3 py-2 text-right text-success font-bold">{r.correct_count}</td>
+                            <td className="px-3 py-2 text-right text-warning font-bold">{r.wrong_count}</td>
+                            <td className="px-3 py-2 text-right">{r.total_questions}</td>
+                            <td
+                              className={cn(
+                                "px-3 py-2 text-right font-bold",
+                                pct >= 70 ? "text-success" : pct >= 50 ? "text-warning" : "text-destructive"
+                              )}
+                            >
+                              {pct}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
+
 
       <Tabs defaultValue="multiplication" className="w-full">
         <TabsList className="grid grid-cols-2 w-full max-w-md">
