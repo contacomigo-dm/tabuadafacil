@@ -27,6 +27,14 @@ export interface WeeklyRecord {
   completed_at: string;
 }
 
+export function isWeeklyRecordComplete(record: WeeklyRecord | null | undefined): boolean {
+  return Boolean(
+    record &&
+      record.total_questions === WEEKLY_TOTAL &&
+      record.correct_count + record.wrong_count === WEEKLY_TOTAL,
+  );
+}
+
 // ISO week number (semana começa segunda-feira).
 export function getISOWeek(d: Date = new Date()): { year: number; week: number } {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -139,6 +147,24 @@ export async function listWeeklyRecordsForWeek(year: number, week: number): Prom
   return (data ?? []) as WeeklyRecord[];
 }
 
+export async function listWeeklyRecordsForPeriod(
+  year: number,
+  startWeek: number,
+  endWeek: number,
+): Promise<WeeklyRecord[]> {
+  const from = Math.min(startWeek, endWeek);
+  const to = Math.max(startWeek, endWeek);
+  const { data, error } = await supabase
+    .from("weekly_challenges")
+    .select("*")
+    .eq("year", year)
+    .gte("week", from)
+    .lte("week", to)
+    .order("week", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as WeeklyRecord[];
+}
+
 export async function listWeeklyRecords(studentId: string): Promise<WeeklyRecord[]> {
   const { data } = await supabase
     .from("weekly_challenges")
@@ -156,6 +182,9 @@ export async function saveWeeklyRecord(
   correct: number,
   wrong: number,
 ): Promise<void> {
+  if (correct + wrong !== WEEKLY_TOTAL) {
+    throw new Error("O desafio só pode ser concluído após as 20 multiplicações e 5 divisões.");
+  }
   const { error } = await supabase.from("weekly_challenges").upsert(
     {
       student_id: studentId,
