@@ -27,7 +27,9 @@ export interface WeeklyRecord {
   completed_at: string;
 }
 
-export function isWeeklyRecordComplete(record: WeeklyRecord | null | undefined): boolean {
+export function isWeeklyRecordComplete(
+  record: WeeklyRecord | null | undefined,
+): record is WeeklyRecord {
   return Boolean(
     record &&
       record.total_questions === WEEKLY_TOTAL &&
