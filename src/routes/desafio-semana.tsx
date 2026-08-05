@@ -12,6 +12,7 @@ import {
   generateWeeklyProblems,
   getISOWeek,
   getWeeklyRecord,
+  isWeeklyRecordComplete,
   listWeeklyRecords,
   type WeeklyRecord,
 } from "@/lib/weekly";
@@ -65,8 +66,9 @@ function DesafioSemana() {
         getStudentById(id),
         listSuspendedTurmas(),
       ]);
-      setHistory(all);
-      setStreak(computeStreak(all));
+      const completedHistory = all.filter(isWeeklyRecordComplete);
+      setHistory(completedHistory);
+      setStreak(computeStreak(completedHistory));
       if (student) {
         const key = turmaKeyFor(student.grade, student.class_name);
         setTurmaLabel(key);
@@ -80,7 +82,7 @@ function DesafioSemana() {
         setWeek(fw);
         const rec = await getWeeklyRecord(id, fy, fw);
         setExistingRecord(rec);
-        if (rec) {
+        if (isWeeklyRecordComplete(rec)) {
           setCorrect(rec.correct_count);
           setWrong(rec.wrong_count);
           setPhase("done");
@@ -103,11 +105,16 @@ function DesafioSemana() {
 
   const goToWeeklyDivision = useCallback(
     (multCorrect: number, multWrong: number) => {
+      if (multCorrect + multWrong !== WEEKLY_MULT_TOTAL) {
+        toast.error("Conclua todas as 20 multiplicações antes de iniciar as divisões.");
+        return;
+      }
       sessionStorage.setItem("divWeeklyMode", "1");
       sessionStorage.setItem("weeklyYear", String(year));
       sessionStorage.setItem("weeklyWeek", String(week));
       sessionStorage.setItem("weeklyMultCorrect", String(multCorrect));
       sessionStorage.setItem("weeklyMultWrong", String(multWrong));
+      sessionStorage.setItem("weeklyMultCompleted", String(WEEKLY_MULT_TOTAL));
       sessionStorage.removeItem("divFreeMode");
       navigate({ to: "/divisao-jogar" });
     },
@@ -220,7 +227,7 @@ function DesafioSemana() {
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/30 px-3 py-1 text-sm font-bold text-primary">
               🔥 Streak: {streak} {streak === 1 ? "semana" : "semanas"}
             </span>
-            {existingRecord && (
+            {isWeeklyRecordComplete(existingRecord) && (
               <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/30 px-3 py-1 text-sm font-bold text-success">
                 ⭐ Selo Semana {week}/{year}
               </span>
@@ -243,7 +250,7 @@ function DesafioSemana() {
                 🗓️ Treinando semana {week}/{year} (semana anterior)
               </div>
             )}
-            {existingRecord ? (
+            {existingRecord && isWeeklyRecordComplete(existingRecord) ? (
               <>
                 <p className="text-foreground font-bold text-lg mb-1">
                   {isPast
@@ -272,7 +279,7 @@ function DesafioSemana() {
               disabled={suspended}
               className="btn-pop h-14 w-full text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
             >
-              {suspended ? "🚫 Desafio suspenso" : existingRecord ? "Refazer o desafio" : "▶ Começar agora"}
+               {suspended ? "🚫 Desafio suspenso" : isWeeklyRecordComplete(existingRecord) ? "Refazer o desafio" : "▶ Começar agora"}
             </Button>
 
             {/* Semanas anteriores para treinar / recuperar */}
@@ -301,7 +308,9 @@ function DesafioSemana() {
                 </p>
                 <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
                   {Array.from({ length: current.week - 1 }, (_, i) => i + 1).map((w) => {
-                    const done = history.some((r) => r.year === current.year && r.week === w);
+                    const done = history.some(
+                      (r) => r.year === current.year && r.week === w && isWeeklyRecordComplete(r),
+                    );
                     const active = year === current.year && week === w;
                     return (
                       <button

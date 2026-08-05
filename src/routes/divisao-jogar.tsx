@@ -51,6 +51,7 @@ function PlayDivisao() {
     if (weekly) {
       const year = Number(ss?.getItem("weeklyYear") ?? "0");
       const week = Number(ss?.getItem("weeklyWeek") ?? "0");
+      const multCompleted = Number(ss?.getItem("weeklyMultCompleted") ?? "0");
       const setups = generateWeeklyDivSetups(year, week);
       const first = setups[0];
       return {
@@ -58,6 +59,7 @@ function PlayDivisao() {
         level: 0,
         year,
         week,
+        multCompleted,
         setups,
         dividend: first.dividend,
         divisor: first.divisor,
@@ -275,7 +277,8 @@ function PlayDivisao() {
       toast.error("Digite um número válido");
       return;
     }
-    const q = confirmedQuotient!;
+    if (confirmedQuotient === null) return;
+    const q = confirmedQuotient;
     const product = q * plan.divisor;
     const correctRem = currentStep.chunk - product;
 
@@ -362,19 +365,26 @@ function PlayDivisao() {
           const ss = sessionStorage;
           const mc = Number(ss.getItem("weeklyMultCorrect") ?? "0");
           const mw = Number(ss.getItem("weeklyMultWrong") ?? "0");
+          const multiplicationIsComplete = setup.multCompleted === 20 && mc + mw === 20;
+          const divisionIsComplete = weeklyIdxRef.current + 1 === WEEKLY_DIV_TOTAL;
+          if (!multiplicationIsComplete || !divisionIsComplete) {
+            toast.error("Conclua as 20 multiplicações e as 5 divisões para receber o selo.");
+            return;
+          }
           const totalCorrect = mc + weeklyCorrectRef.current;
           const totalWrong = mw + weeklyWrongRef.current;
           saveWeeklyRecord(studentId, setup.year, setup.week, totalCorrect, totalWrong)
-            .catch((e) => console.error(e))
-            .finally(() => {
+            .then(() => {
               ss.removeItem("divWeeklyMode");
               ss.removeItem("weeklyYear");
               ss.removeItem("weeklyWeek");
               ss.removeItem("weeklyMultCorrect");
               ss.removeItem("weeklyMultWrong");
+              ss.removeItem("weeklyMultCompleted");
               ss.setItem("weeklyJustFinished", "1");
               setTimeout(() => navigate({ to: "/desafio-semana" }), 800);
-            });
+            })
+            .catch(() => toast.error("Não foi possível salvar. Tente novamente."));
         }
       }
     } else {

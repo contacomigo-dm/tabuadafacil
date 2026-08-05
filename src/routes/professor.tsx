@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { listWeeklyRecords, listWeeklyRecordsForWeek, getISOWeek, computeStreak, type WeeklyRecord } from "@/lib/weekly";
+import { listWeeklyRecords, listWeeklyRecordsForPeriod, listWeeklyRecordsForWeek, getISOWeek, computeStreak, isWeeklyRecordComplete, type WeeklyRecord } from "@/lib/weekly";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -477,8 +477,9 @@ function StudentDetail({
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
   const { year, week } = getISOWeek();
-  const currentWeekRecord = weeklyRecords?.find((r) => r.year === year && r.week === week);
-  const streak = weeklyRecords ? computeStreak(weeklyRecords) : 0;
+  const completedWeeklyRecords = weeklyRecords?.filter(isWeeklyRecordComplete) ?? null;
+  const currentWeekRecord = completedWeeklyRecords?.find((r) => r.year === year && r.week === week);
+  const streak = completedWeeklyRecords ? computeStreak(completedWeeklyRecords) : 0;
 
   return (
     <div className="space-y-4">
@@ -507,7 +508,7 @@ function StudentDetail({
 
       {/* Desafio da Semana */}
       {(() => {
-        const recs = weeklyRecords ?? [];
+        const recs = completedWeeklyRecords ?? [];
         const totalCorrect = recs.reduce((s, r) => s + r.correct_count, 0);
         const totalWrong = recs.reduce((s, r) => s + r.wrong_count, 0);
         const totalQ = recs.reduce((s, r) => s + r.total_questions, 0);
@@ -1417,6 +1418,10 @@ function DesafioSemanaPorTurma({
   const [records, setRecords] = useState<WeeklyRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [onlyDone, setOnlyDone] = useState(false);
+  const current = useMemo(() => getISOWeek(), []);
+  const [viewMode, setViewMode] = useState<"week" | "period">("week");
+  const [startWeek, setStartWeek] = useState(1);
+  const [endWeek, setEndWeek] = useState(current.week);
   const [suspendedSet, setSuspendedSet] = useState<Set<string>>(new Set());
   const [togglingTurma, setTogglingTurma] = useState<string | null>(null);
 
@@ -1426,7 +1431,6 @@ function DesafioSemanaPorTurma({
       .catch(() => {});
   }, []);
 
-  const current = useMemo(() => getISOWeek(), []);
   const [year, setYear] = useState<number>(current.year);
   const [week, setWeek] = useState<number>(current.week);
 
@@ -1448,11 +1452,14 @@ function DesafioSemanaPorTurma({
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    listWeeklyRecordsForWeek(year, week)
+    const request = viewMode === "week"
+      ? listWeeklyRecordsForWeek(year, week)
+      : listWeeklyRecordsForPeriod(year, startWeek, endWeek);
+    request
       .then(setRecords)
       .catch(() => toast.error("Erro ao carregar desafios da semana"))
       .finally(() => setLoading(false));
-  }, [open, year, week]);
+  }, [open, year, week, viewMode, startWeek, endWeek]);
 
   useEffect(() => {
     if (open) refreshSuspended();
@@ -1483,7 +1490,26 @@ function DesafioSemanaPorTurma({
 
   const recordsByStudent = useMemo(() => {
     const map = new Map<string, WeeklyRecord>();
-    for (const r of records) map.set(r.student_id, r);
+    for (const r of records) {
+      if (viewMode === "week" && isWeeklyRecordComplete(r)) map.set(r.student_id, r);
+    }
+    return map;
+  }, [records, viewMode]);
+
+  const periodWeeks = useMemo(() => {
+    const from = Math.min(startWeek, endWeek);
+    const to = Math.max(startWeek, endWeek);
+    return Array.from({ length: to - from + 1 }, (_, index) => from + index);
+  }, [startWeek, endWeek]);
+
+  const periodByStudent = useMemo(() => {
+    const map = new Map<string, WeeklyRecord[]>();
+    for (const record of records) {
+      if (!isWeeklyRecordComplete(record)) continue;
+      const list = map.get(record.student_id) ?? [];
+      list.push(record);
+      map.set(record.student_id, list);
+    }
     return map;
   }, [records]);
 
@@ -1493,8 +1519,10 @@ function DesafioSemanaPorTurma({
   );
 
   const filteredStudents = useMemo(() => {
-    return onlyDone ? turmaScope.filter((s) => recordsByStudent.has(s.id)) : turmaScope;
-  }, [turmaScope, onlyDone, recordsByStudent]);
+    return onlyDone
+      ? turmaScope.filter((s) => viewMode === "week" ? recordsByStudent.has(s.id) : (periodByStudent.get(s.id)?.length ?? 0) > 0)
+      : turmaScope;
+  }, [turmaScope, onlyDone, recordsByStudent, periodByStudent, viewMode]);
 
   const doneCount = turmaScope.filter((s) => recordsByStudent.has(s.id)).length;
   const totalCount = turmaScope.length;
@@ -1508,13 +1536,43 @@ function DesafioSemanaPorTurma({
         className="w-full flex items-center justify-between p-4"
       >
         <span className="text-lg font-extrabold flex items-center gap-2">
-          🏆 Desafio da Semana — Semana {week}/{year}
-          {isCurrent && <span className="text-xs font-normal text-muted-foreground">(atual)</span>}
+          🏆 Desafio da Semana — {viewMode === "week" ? `Semana ${week}/${year}` : `Extrato S${periodWeeks[0]}–S${periodWeeks[periodWeeks.length - 1]}/${year}`}
+          {viewMode === "week" && isCurrent && <span className="text-xs font-normal text-muted-foreground">(atual)</span>}
         </span>
         <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
       </button>
       {open && (
         <div className="px-4 pb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="flex rounded-lg border border-border bg-background p-1">
+              <Button type="button" size="sm" variant={viewMode === "week" ? "default" : "ghost"} onClick={() => setViewMode("week")}>Uma semana</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === "period" ? "default" : "ghost"}
+                onClick={() => {
+                  setViewMode("period");
+                  setOnlyDone(false);
+                }}
+              >
+                Extrato por período
+              </Button>
+            </div>
+          </div>
+          {viewMode === "period" ? (
+            <div className="flex flex-wrap items-end gap-3 mb-3 rounded-xl border border-border bg-secondary/40 p-3">
+              <label className="text-sm font-semibold">Semana inicial
+                <Input type="number" min={1} max={53} value={startWeek} onChange={(e) => setStartWeek(Math.max(1, Math.min(53, Number(e.target.value) || 1)))} className="mt-1 w-28 bg-background" />
+              </label>
+              <label className="text-sm font-semibold">Semana final
+                <Input type="number" min={1} max={53} value={endWeek} onChange={(e) => setEndWeek(Math.max(1, Math.min(53, Number(e.target.value) || 1)))} className="mt-1 w-28 bg-background" />
+              </label>
+              <label className="text-sm font-semibold">Ano
+                <Input type="number" min={2024} max={2100} value={year} onChange={(e) => setYear(Number(e.target.value) || current.year)} className="mt-1 w-28 bg-background" />
+              </label>
+              <p className="text-xs text-muted-foreground pb-2">Concluído somente com 20 multiplicações + 5 divisões.</p>
+            </div>
+          ) : (
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <button
               type="button"
@@ -1581,8 +1639,11 @@ function DesafioSemanaPorTurma({
               Somente quem fez
             </label>
           </div>
+          )}
           <p className="text-sm text-muted-foreground mb-3">
-            {doneCount} de {totalCount} aluno(s) concluíram a semana {week}/{year}
+            {viewMode === "week"
+              ? `${doneCount} de ${totalCount} aluno(s) concluíram a semana ${week}/${year}`
+              : `Extrato das semanas ${periodWeeks[0]} a ${periodWeeks[periodWeeks.length - 1]} de ${year}`}
             {filter !== "__all__" ? ` na turma ${filter}` : ""}.
           </p>
           <div className="flex flex-wrap gap-2 mb-3">
@@ -1659,14 +1720,16 @@ function DesafioSemanaPorTurma({
                   <tr className="text-left text-muted-foreground border-b border-border">
                     <th className="py-2">Aluno</th>
                     <th className="py-2">Turma</th>
-                    <th className="py-2">Status</th>
-                    <th className="py-2 text-right">Pontuação</th>
+                    <th className="py-2">{viewMode === "week" ? "Status" : "Progresso"}</th>
+                    <th className="py-2 text-right">{viewMode === "week" ? "Pontuação" : "Semanas pendentes"}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredStudents.map((s) => {
                     const rec = recordsByStudent.get(s.id);
                     const done = !!rec;
+                    const completedWeeks = new Set((periodByStudent.get(s.id) ?? []).map((item) => item.week));
+                    const missingWeeks = periodWeeks.filter((item) => !completedWeeks.has(item));
                     return (
                       <tr key={s.id} className="border-b border-border/50">
                         <td className="py-2 font-bold">
@@ -1684,7 +1747,11 @@ function DesafioSemanaPorTurma({
                         </td>
                         <td className="py-2 text-muted-foreground">{turmaKeyOf(s)}</td>
                         <td className="py-2">
-                          {done ? (
+                          {viewMode === "period" ? (
+                            <span className={cn("font-bold", missingWeeks.length === 0 ? "text-success" : "text-warning")}>
+                              {completedWeeks.size}/{periodWeeks.length} concluídos
+                            </span>
+                          ) : done ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-success/15 border border-success/30 px-2.5 py-0.5 text-xs font-bold text-success">
                               ✅ Feito
                             </span>
@@ -1695,7 +1762,11 @@ function DesafioSemanaPorTurma({
                           )}
                         </td>
                         <td className="py-2 text-right tabular-nums">
-                          {done ? (
+                          {viewMode === "period" ? (
+                            <span className={missingWeeks.length === 0 ? "text-success font-semibold" : "text-muted-foreground"}>
+                              {missingWeeks.length === 0 ? "✅ Nenhuma" : missingWeeks.map((item) => `S${item}`).join(", ")}
+                            </span>
+                          ) : done ? (
                             <span className="text-success font-semibold">
                               {rec.correct_count}/{rec.total_questions}
                             </span>
