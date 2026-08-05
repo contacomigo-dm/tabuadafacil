@@ -1815,7 +1815,6 @@ function CredentialsListCard() {
                     <th className="px-3 py-2 font-bold">Nome</th>
                     <th className="px-3 py-2 font-bold">Turma</th>
                     <th className="px-3 py-2 font-bold">Login</th>
-                    <th className="px-3 py-2 font-bold">Senha</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1824,7 +1823,6 @@ function CredentialsListCard() {
                       <td className="px-3 py-2 font-semibold">{i.first_name}</td>
                       <td className="px-3 py-2 text-muted-foreground">{turmaLabel(i)}</td>
                       <td className="px-3 py-2 font-mono">{i.username}</td>
-                      <td className="px-3 py-2 font-mono">{i.password}</td>
                     </tr>
                   ))}
                 </tbody>
