@@ -1756,10 +1756,10 @@ function CredentialsListCard() {
 
   const copyAll = async () => {
     const text = filtered
-      .map((i) => `${i.first_name}\t${turmaLabel(i)}\t${i.username}\t${i.password}`)
+      .map((i) => `${i.first_name}\t${turmaLabel(i)}\t${i.username}`)
       .join("\n");
     try {
-      await navigator.clipboard.writeText(`Nome\tTurma\tLogin\tSenha\n${text}`);
+      await navigator.clipboard.writeText(`Nome\tTurma\tLogin\n${text}`);
       toast.success("Lista copiada para a área de transferência");
     } catch {
       toast.error("Não foi possível copiar");
@@ -1770,9 +1770,10 @@ function CredentialsListCard() {
     <section className="bg-card rounded-2xl p-4 border border-border mb-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h2 className="text-lg font-extrabold text-foreground">🔑 Logins e senhas gerados</h2>
+          <h2 className="text-lg font-extrabold text-foreground">🔑 Logins gerados</h2>
           <p className="text-sm text-muted-foreground">
-            Lista em ordem alfabética dos alunos com login e senha cadastrados pelo professor.
+            Lista em ordem alfabética dos alunos com login cadastrado. Por segurança, as senhas não
+            ficam guardadas — se o aluno esquecer, gere uma nova em "Gerar login e senha".
           </p>
         </div>
         <div className="flex gap-2">
@@ -1814,7 +1815,6 @@ function CredentialsListCard() {
                     <th className="px-3 py-2 font-bold">Nome</th>
                     <th className="px-3 py-2 font-bold">Turma</th>
                     <th className="px-3 py-2 font-bold">Login</th>
-                    <th className="px-3 py-2 font-bold">Senha</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1823,7 +1823,6 @@ function CredentialsListCard() {
                       <td className="px-3 py-2 font-semibold">{i.first_name}</td>
                       <td className="px-3 py-2 text-muted-foreground">{turmaLabel(i)}</td>
                       <td className="px-3 py-2 font-mono">{i.username}</td>
-                      <td className="px-3 py-2 font-mono">{i.password}</td>
                     </tr>
                   ))}
                 </tbody>

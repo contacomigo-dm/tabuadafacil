@@ -1,0 +1,1 @@
+ALTER TABLE public.students DROP COLUMN IF EXISTS password_plain;

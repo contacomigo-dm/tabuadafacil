@@ -9,55 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProfessorRouteImport } from './routes/professor'
-import { Route as JogarRouteImport } from './routes/jogar'
-import { Route as EscolherNivelRouteImport } from './routes/escolher-nivel'
-import { Route as EscolherAtividadeRouteImport } from './routes/escolher-atividade'
-import { Route as DivisaoTreinoRouteImport } from './routes/divisao-treino'
-import { Route as DivisaoJogarRouteImport } from './routes/divisao-jogar'
-import { Route as DivisaoRouteImport } from './routes/divisao'
-import { Route as DesafioSemanaRouteImport } from './routes/desafio-semana'
-import { Route as AlunoRouteImport } from './routes/aluno'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AlunoRouteImport } from './routes/aluno'
+import { Route as DesafioSemanaRouteImport } from './routes/desafio-semana'
+import { Route as DivisaoRouteImport } from './routes/divisao'
+import { Route as DivisaoJogarRouteImport } from './routes/divisao-jogar'
+import { Route as DivisaoTreinoRouteImport } from './routes/divisao-treino'
+import { Route as EscolherAtividadeRouteImport } from './routes/escolher-atividade'
+import { Route as EscolherNivelRouteImport } from './routes/escolher-nivel'
+import { Route as JogarRouteImport } from './routes/jogar'
+import { Route as ProfessorRouteImport } from './routes/professor'
 
-const ProfessorRoute = ProfessorRouteImport.update({
-  id: '/professor',
-  path: '/professor',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JogarRoute = JogarRouteImport.update({
-  id: '/jogar',
-  path: '/jogar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EscolherNivelRoute = EscolherNivelRouteImport.update({
-  id: '/escolher-nivel',
-  path: '/escolher-nivel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EscolherAtividadeRoute = EscolherAtividadeRouteImport.update({
-  id: '/escolher-atividade',
-  path: '/escolher-atividade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DivisaoTreinoRoute = DivisaoTreinoRouteImport.update({
-  id: '/divisao-treino',
-  path: '/divisao-treino',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DivisaoJogarRoute = DivisaoJogarRouteImport.update({
-  id: '/divisao-jogar',
-  path: '/divisao-jogar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DivisaoRoute = DivisaoRouteImport.update({
-  id: '/divisao',
-  path: '/divisao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesafioSemanaRoute = DesafioSemanaRouteImport.update({
-  id: '/desafio-semana',
-  path: '/desafio-semana',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlunoRoute = AlunoRouteImport.update({
@@ -65,9 +30,44 @@ const AlunoRoute = AlunoRouteImport.update({
   path: '/aluno',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DesafioSemanaRoute = DesafioSemanaRouteImport.update({
+  id: '/desafio-semana',
+  path: '/desafio-semana',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DivisaoRoute = DivisaoRouteImport.update({
+  id: '/divisao',
+  path: '/divisao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DivisaoJogarRoute = DivisaoJogarRouteImport.update({
+  id: '/divisao-jogar',
+  path: '/divisao-jogar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DivisaoTreinoRoute = DivisaoTreinoRouteImport.update({
+  id: '/divisao-treino',
+  path: '/divisao-treino',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscolherAtividadeRoute = EscolherAtividadeRouteImport.update({
+  id: '/escolher-atividade',
+  path: '/escolher-atividade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscolherNivelRoute = EscolherNivelRouteImport.update({
+  id: '/escolher-nivel',
+  path: '/escolher-nivel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JogarRoute = JogarRouteImport.update({
+  id: '/jogar',
+  path: '/jogar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessorRoute = ProfessorRouteImport.update({
+  id: '/professor',
+  path: '/professor',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -162,60 +162,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/professor': {
-      id: '/professor'
-      path: '/professor'
-      fullPath: '/professor'
-      preLoaderRoute: typeof ProfessorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/jogar': {
-      id: '/jogar'
-      path: '/jogar'
-      fullPath: '/jogar'
-      preLoaderRoute: typeof JogarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/escolher-nivel': {
-      id: '/escolher-nivel'
-      path: '/escolher-nivel'
-      fullPath: '/escolher-nivel'
-      preLoaderRoute: typeof EscolherNivelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/escolher-atividade': {
-      id: '/escolher-atividade'
-      path: '/escolher-atividade'
-      fullPath: '/escolher-atividade'
-      preLoaderRoute: typeof EscolherAtividadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/divisao-treino': {
-      id: '/divisao-treino'
-      path: '/divisao-treino'
-      fullPath: '/divisao-treino'
-      preLoaderRoute: typeof DivisaoTreinoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/divisao-jogar': {
-      id: '/divisao-jogar'
-      path: '/divisao-jogar'
-      fullPath: '/divisao-jogar'
-      preLoaderRoute: typeof DivisaoJogarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/divisao': {
-      id: '/divisao'
-      path: '/divisao'
-      fullPath: '/divisao'
-      preLoaderRoute: typeof DivisaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/desafio-semana': {
-      id: '/desafio-semana'
-      path: '/desafio-semana'
-      fullPath: '/desafio-semana'
-      preLoaderRoute: typeof DesafioSemanaRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aluno': {
@@ -225,11 +176,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlunoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/desafio-semana': {
+      id: '/desafio-semana'
+      path: '/desafio-semana'
+      fullPath: '/desafio-semana'
+      preLoaderRoute: typeof DesafioSemanaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/divisao': {
+      id: '/divisao'
+      path: '/divisao'
+      fullPath: '/divisao'
+      preLoaderRoute: typeof DivisaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/divisao-jogar': {
+      id: '/divisao-jogar'
+      path: '/divisao-jogar'
+      fullPath: '/divisao-jogar'
+      preLoaderRoute: typeof DivisaoJogarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/divisao-treino': {
+      id: '/divisao-treino'
+      path: '/divisao-treino'
+      fullPath: '/divisao-treino'
+      preLoaderRoute: typeof DivisaoTreinoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escolher-atividade': {
+      id: '/escolher-atividade'
+      path: '/escolher-atividade'
+      fullPath: '/escolher-atividade'
+      preLoaderRoute: typeof EscolherAtividadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escolher-nivel': {
+      id: '/escolher-nivel'
+      path: '/escolher-nivel'
+      fullPath: '/escolher-nivel'
+      preLoaderRoute: typeof EscolherNivelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jogar': {
+      id: '/jogar'
+      path: '/jogar'
+      fullPath: '/jogar'
+      preLoaderRoute: typeof JogarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professor': {
+      id: '/professor'
+      path: '/professor'
+      fullPath: '/professor'
+      preLoaderRoute: typeof ProfessorRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
