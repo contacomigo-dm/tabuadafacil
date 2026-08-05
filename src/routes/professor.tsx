@@ -1546,7 +1546,17 @@ function DesafioSemanaPorTurma({
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <div className="flex rounded-lg border border-border bg-background p-1">
               <Button type="button" size="sm" variant={viewMode === "week" ? "default" : "ghost"} onClick={() => setViewMode("week")}>Uma semana</Button>
-              <Button type="button" size="sm" variant={viewMode === "period" ? "default" : "ghost"} onClick={() => setViewMode("period")}>Extrato por período</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === "period" ? "default" : "ghost"}
+                onClick={() => {
+                  setViewMode("period");
+                  setOnlyDone(false);
+                }}
+              >
+                Extrato por período
+              </Button>
             </div>
           </div>
           {viewMode === "period" ? (
