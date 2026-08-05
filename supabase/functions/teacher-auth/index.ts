@@ -156,7 +156,6 @@ async function setStudentCredentials(args: {
     .from("students")
     .update({
       password_hash: hash,
-      password_plain: args.password,
       username: args.username,
       updated_at: new Date().toISOString(),
     })
@@ -166,15 +165,15 @@ async function setStudentCredentials(args: {
 }
 
 async function listCredentials(): Promise<
-  Array<{ id: string; first_name: string; grade: string | null; class_name: string | null; shift: string | null; username: string; password: string }>
+  Array<{ id: string; first_name: string; grade: string | null; class_name: string | null; shift: string | null; username: string }>
 > {
   const { data, error } = await admin
     .from("students")
-    .select("id, first_name, grade, class_name, shift, username, password_plain")
+    .select("id, first_name, grade, class_name, shift, username")
     .not("username", "is", null)
-    .not("password_plain", "is", null)
     .order("first_name", { ascending: true });
   if (error) throw error;
+  // Senhas nunca são armazenadas em texto puro — apenas o hash bcrypt.
   return (data ?? []).map((r: Record<string, unknown>) => ({
     id: r.id as string,
     first_name: r.first_name as string,
@@ -182,7 +181,6 @@ async function listCredentials(): Promise<
     class_name: (r.class_name as string) ?? null,
     shift: (r.shift as string) ?? null,
     username: r.username as string,
-    password: r.password_plain as string,
   }));
 }
 
