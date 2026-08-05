@@ -249,7 +249,7 @@ function DesafioSemana() {
                 🗓️ Treinando semana {week}/{year} (semana anterior)
               </div>
             )}
-            {isWeeklyRecordComplete(existingRecord) ? (
+            {existingRecord && isWeeklyRecordComplete(existingRecord) ? (
               <>
                 <p className="text-foreground font-bold text-lg mb-1">
                   {isPast

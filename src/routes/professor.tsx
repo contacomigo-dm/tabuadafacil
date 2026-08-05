@@ -1417,6 +1417,7 @@ function DesafioSemanaPorTurma({
   const [records, setRecords] = useState<WeeklyRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [onlyDone, setOnlyDone] = useState(false);
+  const current = useMemo(() => getISOWeek(), []);
   const [viewMode, setViewMode] = useState<"week" | "period">("week");
   const [startWeek, setStartWeek] = useState(1);
   const [endWeek, setEndWeek] = useState(current.week);
@@ -1429,7 +1430,6 @@ function DesafioSemanaPorTurma({
       .catch(() => {});
   }, []);
 
-  const current = useMemo(() => getISOWeek(), []);
   const [year, setYear] = useState<number>(current.year);
   const [week, setWeek] = useState<number>(current.week);
 

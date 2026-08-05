@@ -18,7 +18,6 @@ import {
 import { findOrCreateStudent, getStudentById, logAttempt, startSession, updateSession, updateStudent } from "@/lib/api";
 import {
   generateWeeklyDivSetups,
-  isWeeklyRecordComplete,
   saveWeeklyRecord,
   WEEKLY_DIV_TOTAL,
 } from "@/lib/weekly";
