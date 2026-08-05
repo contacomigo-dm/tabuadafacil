@@ -477,8 +477,9 @@ function StudentDetail({
   const total = student.total_correct + student.total_wrong;
   const pct = total > 0 ? Math.round((student.total_correct / total) * 100) : 0;
   const { year, week } = getISOWeek();
-  const currentWeekRecord = weeklyRecords?.find((r) => r.year === year && r.week === week);
-  const streak = weeklyRecords ? computeStreak(weeklyRecords) : 0;
+  const completedWeeklyRecords = weeklyRecords?.filter(isWeeklyRecordComplete) ?? null;
+  const currentWeekRecord = completedWeeklyRecords?.find((r) => r.year === year && r.week === week);
+  const streak = completedWeeklyRecords ? computeStreak(completedWeeklyRecords) : 0;
 
   return (
     <div className="space-y-4">
@@ -507,7 +508,7 @@ function StudentDetail({
 
       {/* Desafio da Semana */}
       {(() => {
-        const recs = weeklyRecords ?? [];
+        const recs = completedWeeklyRecords ?? [];
         const totalCorrect = recs.reduce((s, r) => s + r.correct_count, 0);
         const totalWrong = recs.reduce((s, r) => s + r.wrong_count, 0);
         const totalQ = recs.reduce((s, r) => s + r.total_questions, 0);
@@ -1535,8 +1536,8 @@ function DesafioSemanaPorTurma({
         className="w-full flex items-center justify-between p-4"
       >
         <span className="text-lg font-extrabold flex items-center gap-2">
-          🏆 Desafio da Semana — Semana {week}/{year}
-          {isCurrent && <span className="text-xs font-normal text-muted-foreground">(atual)</span>}
+          🏆 Desafio da Semana — {viewMode === "week" ? `Semana ${week}/${year}` : `Extrato S${periodWeeks[0]}–S${periodWeeks[periodWeeks.length - 1]}/${year}`}
+          {viewMode === "week" && isCurrent && <span className="text-xs font-normal text-muted-foreground">(atual)</span>}
         </span>
         <span className="text-sm text-muted-foreground">{open ? "Ocultar ▲" : "Mostrar ▼"}</span>
       </button>

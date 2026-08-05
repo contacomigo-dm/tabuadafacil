@@ -66,8 +66,9 @@ function DesafioSemana() {
         getStudentById(id),
         listSuspendedTurmas(),
       ]);
-      setHistory(all);
-      setStreak(computeStreak(all));
+      const completedHistory = all.filter(isWeeklyRecordComplete);
+      setHistory(completedHistory);
+      setStreak(computeStreak(completedHistory));
       if (student) {
         const key = turmaKeyFor(student.grade, student.class_name);
         setTurmaLabel(key);
@@ -81,7 +82,7 @@ function DesafioSemana() {
         setWeek(fw);
         const rec = await getWeeklyRecord(id, fy, fw);
         setExistingRecord(rec);
-        if (rec) {
+        if (isWeeklyRecordComplete(rec)) {
           setCorrect(rec.correct_count);
           setWrong(rec.wrong_count);
           setPhase("done");

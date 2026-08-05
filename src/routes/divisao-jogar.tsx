@@ -374,8 +374,7 @@ function PlayDivisao() {
           const totalCorrect = mc + weeklyCorrectRef.current;
           const totalWrong = mw + weeklyWrongRef.current;
           saveWeeklyRecord(studentId, setup.year, setup.week, totalCorrect, totalWrong)
-            .catch((e) => console.error(e))
-            .finally(() => {
+            .then(() => {
               ss.removeItem("divWeeklyMode");
               ss.removeItem("weeklyYear");
               ss.removeItem("weeklyWeek");
@@ -384,7 +383,8 @@ function PlayDivisao() {
               ss.removeItem("weeklyMultCompleted");
               ss.setItem("weeklyJustFinished", "1");
               setTimeout(() => navigate({ to: "/desafio-semana" }), 800);
-            });
+            })
+            .catch(() => toast.error("Não foi possível salvar. Tente novamente."));
         }
       }
     } else {
@@ -422,16 +422,12 @@ function PlayDivisao() {
     <main className="min-h-screen leaf-bg px-2 sm:px-4 py-3 sm:py-6 pb-[60vh] lg:pb-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-2 sm:mb-4">
-          {setup.mode === "weekly" && phase !== "done" ? (
-            <span className="text-xs font-semibold text-muted-foreground">Conclua esta divisão para avançar</span>
-          ) : (
-            <button
-              onClick={() => navigate({ to: setup.mode === "weekly" ? "/desafio-semana" : "/divisao" })}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Sair
-            </button>
-          )}
+          <button
+            onClick={() => navigate({ to: setup.mode === "weekly" ? "/desafio-semana" : "/divisao" })}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            ← Sair
+          </button>
           <div className="text-sm font-semibold text-muted-foreground text-right">
             {setup.mode === "level" ? (
               <>

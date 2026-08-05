@@ -202,8 +202,9 @@ export async function saveWeeklyRecord(
 
 // Calcula sequência de semanas consecutivas concluídas.
 export function computeStreak(records: WeeklyRecord[]): number {
-  if (records.length === 0) return 0;
-  const set = new Set(records.map((r) => `${r.year}-${r.week}`));
+  const completed = records.filter(isWeeklyRecordComplete);
+  if (completed.length === 0) return 0;
+  const set = new Set(completed.map((r) => `${r.year}-${r.week}`));
   const cur = getISOWeek();
   let { year, week } = cur;
   if (!set.has(`${year}-${week}`)) {
