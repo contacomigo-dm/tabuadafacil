@@ -1021,7 +1021,7 @@ function AtividadePorData({
         row.activities.add(r.activity ?? "multiplication");
         agg.set(r.student_id, row);
       }
-      setRows([...agg.values()].sort((a, b) => b.correct + b.wrong - (a.correct + a.wrong)));
+      setRows([...agg.values()].sort((a, b) => a.first_name.localeCompare(b.first_name, "pt-BR", { sensitivity: "base" })));
     } catch {
       toast.error("Erro ao buscar atividade");
     } finally {

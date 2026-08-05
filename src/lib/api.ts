@@ -508,9 +508,11 @@ export async function listStudents(): Promise<Student[]> {
   const { data, error } = await supabase
     .from("students")
     .select(SAFE_COLS)
-    .order("updated_at", { ascending: false });
+    .order("first_name", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as Student[];
+  return ((data ?? []) as Student[]).sort((a, b) =>
+    a.first_name.localeCompare(b.first_name, "pt-BR", { sensitivity: "base" }),
+  );
 }
 
 export interface RankingEntry {
