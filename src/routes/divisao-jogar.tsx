@@ -20,6 +20,7 @@ import {
   generateWeeklyDivSetups,
   saveWeeklyRecord,
   WEEKLY_DIV_TOTAL,
+  WEEKLY_MULT_TOTAL,
 } from "@/lib/weekly";
 
 export const Route = createFileRoute("/divisao-jogar")({
