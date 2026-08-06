@@ -199,6 +199,7 @@ export interface CredentialEntry {
   class_name: string | null;
   shift: string | null;
   username: string;
+  password?: string | null;
 }
 
 export async function teacherListCredentials(): Promise<CredentialEntry[]> {
