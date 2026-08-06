@@ -1827,10 +1827,10 @@ function CredentialsListCard() {
 
   const copyAll = async () => {
     const text = filtered
-      .map((i) => `${i.first_name}\t${turmaLabel(i)}\t${i.username}`)
+      .map((i) => `${i.first_name}\t${turmaLabel(i)}\t${i.username}\t${i.password ?? "—"}`)
       .join("\n");
     try {
-      await navigator.clipboard.writeText(`Nome\tTurma\tLogin\n${text}`);
+      await navigator.clipboard.writeText(`Nome\tTurma\tLogin\tSenha\n${text}`);
       toast.success("Lista copiada para a área de transferência");
     } catch {
       toast.error("Não foi possível copiar");
