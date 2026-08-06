@@ -106,7 +106,7 @@ function DesafioSemana() {
   const goToWeeklyDivision = useCallback(
     (multCorrect: number, multWrong: number) => {
       if (multCorrect + multWrong !== WEEKLY_MULT_TOTAL) {
-        toast.error("Conclua todas as 20 multiplicações antes de iniciar as divisões.");
+        toast.error(`Conclua todas as ${WEEKLY_MULT_TOTAL} multiplicações antes de iniciar as divisões.`);
         return;
       }
       sessionStorage.setItem("divWeeklyMode", "1");

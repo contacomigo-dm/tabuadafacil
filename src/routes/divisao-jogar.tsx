@@ -365,10 +365,13 @@ function PlayDivisao() {
           const ss = sessionStorage;
           const mc = Number(ss.getItem("weeklyMultCorrect") ?? "0");
           const mw = Number(ss.getItem("weeklyMultWrong") ?? "0");
-          const multiplicationIsComplete = setup.multCompleted === 20 && mc + mw === 20;
+          const multiplicationIsComplete =
+            setup.multCompleted === WEEKLY_MULT_TOTAL && mc + mw === WEEKLY_MULT_TOTAL;
           const divisionIsComplete = weeklyIdxRef.current + 1 === WEEKLY_DIV_TOTAL;
           if (!multiplicationIsComplete || !divisionIsComplete) {
-            toast.error("Conclua as 20 multiplicações e as 5 divisões para receber o selo.");
+            toast.error(
+              `Conclua as ${WEEKLY_MULT_TOTAL} multiplicações e as ${WEEKLY_DIV_TOTAL} divisões para receber o selo.`,
+            );
             return;
           }
           const totalCorrect = mc + weeklyCorrectRef.current;
