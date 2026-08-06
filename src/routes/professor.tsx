@@ -1570,7 +1570,7 @@ function DesafioSemanaPorTurma({
               <label className="text-sm font-semibold">Ano
                 <Input type="number" min={2024} max={2100} value={year} onChange={(e) => setYear(Number(e.target.value) || current.year)} className="mt-1 w-28 bg-background" />
               </label>
-              <p className="text-xs text-muted-foreground pb-2">Concluído somente com 20 multiplicações + 5 divisões.</p>
+              <p className="text-xs text-muted-foreground pb-2">Concluído somente com 15 multiplicações + 3 divisões.</p>
             </div>
           ) : (
           <div className="flex flex-wrap items-center gap-2 mb-3">

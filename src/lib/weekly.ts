@@ -57,8 +57,8 @@ function mulberry32(seed: number) {
   };
 }
 
-export const WEEKLY_MULT_TOTAL = 20;
-export const WEEKLY_DIV_TOTAL = 5;
+export const WEEKLY_MULT_TOTAL = 15;
+export const WEEKLY_DIV_TOTAL = 3;
 export const WEEKLY_TOTAL = WEEKLY_MULT_TOTAL + WEEKLY_DIV_TOTAL;
 export const WEEKLY_MULT_TIMER = 4; // segundos
 
@@ -100,7 +100,7 @@ export function generateWeeklyDivSetups(year: number, week: number): WeeklyDivSe
   const seed = year * 100 + week + 7777;
   const rnd = mulberry32(seed);
   const rint = (n: number) => Math.floor(rnd() * n);
-  const digitsSeq: number[] = [3, 3, 4, 4, 5];
+  const digitsSeq: number[] = [3, 4, 5];
   const out: WeeklyDivSetup[] = [];
   for (const digits of digitsSeq) {
     let dividend = 0;
@@ -185,7 +185,9 @@ export async function saveWeeklyRecord(
   wrong: number,
 ): Promise<void> {
   if (correct + wrong !== WEEKLY_TOTAL) {
-    throw new Error("O desafio só pode ser concluído após as 20 multiplicações e 5 divisões.");
+    throw new Error(
+      `O desafio só pode ser concluído após as ${WEEKLY_MULT_TOTAL} multiplicações e ${WEEKLY_DIV_TOTAL} divisões.`,
+    );
   }
   const { error } = await supabase.from("weekly_challenges").upsert(
     {
