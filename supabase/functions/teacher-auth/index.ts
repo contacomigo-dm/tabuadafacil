@@ -166,15 +166,14 @@ async function setStudentCredentials(args: {
 }
 
 async function listCredentials(): Promise<
-  Array<{ id: string; first_name: string; grade: string | null; class_name: string | null; shift: string | null; username: string }>
+  Array<{ id: string; first_name: string; grade: string | null; class_name: string | null; shift: string | null; username: string; password: string | null }>
 > {
   const { data, error } = await admin
     .from("students")
-    .select("id, first_name, grade, class_name, shift, username")
+    .select("id, first_name, grade, class_name, shift, username, password_plain")
     .not("username", "is", null)
     .order("first_name", { ascending: true });
   if (error) throw error;
-  // Senhas nunca são armazenadas em texto puro — apenas o hash bcrypt.
   return (data ?? []).map((r: Record<string, unknown>) => ({
     id: r.id as string,
     first_name: r.first_name as string,
@@ -182,8 +181,11 @@ async function listCredentials(): Promise<
     class_name: (r.class_name as string) ?? null,
     shift: (r.shift as string) ?? null,
     username: r.username as string,
+    password: (r.password_plain as string) ?? null,
   }));
 }
+
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
