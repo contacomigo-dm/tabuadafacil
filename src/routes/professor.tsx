@@ -1843,8 +1843,8 @@ function CredentialsListCard() {
         <div>
           <h2 className="text-lg font-extrabold text-foreground">🔑 Logins gerados</h2>
           <p className="text-sm text-muted-foreground">
-            Lista em ordem alfabética dos alunos com login cadastrado. Por segurança, as senhas não
-            ficam guardadas — se o aluno esquecer, gere uma nova em "Gerar login e senha".
+            Lista em ordem alfabética dos alunos com login e senha cadastrados pelo professor.
+            Senhas geradas antes desta atualização aparecem como "—": basta gerar novamente.
           </p>
         </div>
         <div className="flex gap-2">
