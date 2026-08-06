@@ -156,6 +156,7 @@ async function setStudentCredentials(args: {
     .from("students")
     .update({
       password_hash: hash,
+      password_plain: args.password,
       username: args.username,
       updated_at: new Date().toISOString(),
     })
