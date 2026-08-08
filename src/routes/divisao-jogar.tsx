@@ -530,15 +530,16 @@ function PlayDivisao() {
                   Verifique a multiplicação
                 </div>
                 <h3 className="text-xl font-bold text-foreground">
-                  Você escolheu <span className="text-river">{confirmedQuotient}</span>.
+                  Você respondeu <span className="text-river">{confirmedQuotient}</span>.
                 </h3>
                 <div className="mt-4 bg-accent/20 rounded-xl p-4 text-center">
                   <div className="text-3xl font-mono font-bold text-foreground">
-                    {confirmedQuotient} × {plan.divisor} ={" "}
+                    {plan.divisor} × {confirmedQuotient} ={" "}
                     <span className="text-river">{confirmedQuotient * plan.divisor}</span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
-                    Esse valor cabe em {currentStep.chunk}?
+                    {confirmedQuotient * plan.divisor} não pode passar de {currentStep.chunk}. Está
+                    certo?
                   </div>
                 </div>
                 <Button
