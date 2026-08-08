@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Celebration } from "@/components/Celebration";
 import {
   generateQuestion,
   getLevel,
@@ -395,8 +396,8 @@ function PlayPage() {
         {levelCompleteChoice && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
             <div className="bg-card rounded-3xl p-8 max-w-md w-full border border-border shadow-[var(--shadow-soft)] text-center">
-              <div className="text-5xl mb-3">🎉</div>
-              <h2 className="text-2xl font-extrabold text-foreground mb-2">
+              <Celebration message="Parabéns! Você subiu de nível!" />
+              <h2 className="text-2xl font-extrabold text-foreground mb-2 mt-3">
                 Parabéns! Você passou de nível!
               </h2>
               <p className="text-muted-foreground mb-6">

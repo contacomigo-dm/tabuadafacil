@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Celebration } from "@/components/Celebration";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -454,8 +455,8 @@ function DesafioSemana() {
 
         {phase === "done" && (
           <div className="bg-card rounded-3xl p-8 border border-border text-center">
-            <div className="text-6xl mb-3">⭐</div>
-            <h2 className="text-2xl font-extrabold text-foreground mb-2">
+            <Celebration />
+            <h2 className="text-2xl font-extrabold text-foreground mb-2 mt-3">
               Desafio concluído!
             </h2>
             <p className="text-muted-foreground mb-4">

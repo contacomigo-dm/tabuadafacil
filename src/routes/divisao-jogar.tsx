@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Celebration } from "@/components/Celebration";
 import {
   buildPlan,
   getDivisionLevel,
@@ -606,8 +607,12 @@ function PlayDivisao() {
                 weeklyIdxRef.current + 1 >= weeklySetup.setups.length;
               return (
                 <div className="text-center">
-                  <div className="text-5xl mb-2">🎉</div>
-                  <h3 className="text-2xl font-extrabold text-primary">
+                  {isLastWeekly ? (
+                    <Celebration message="Desafio da semana concluído! Você é fera!" />
+                  ) : (
+                    <div className="text-5xl mb-2">🎉</div>
+                  )}
+                  <h3 className="text-2xl font-extrabold text-primary mt-2">
                     {isLastWeekly ? "Desafio concluído!" : "Conta pronta!"}
                   </h3>
                   <div className="mt-3 bg-primary/10 rounded-xl p-4 text-left">
@@ -647,8 +652,8 @@ function PlayDivisao() {
       {showFinish && (
         <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-3xl max-w-md w-full p-8 text-center border border-border shadow-2xl">
-            <div className="text-6xl mb-3">🏆</div>
-            <h2 className="text-3xl font-extrabold text-primary">Nível concluído!</h2>
+            <Celebration message="Nível concluído! Três contas sem errar 🏆" />
+            <h2 className="text-3xl font-extrabold text-primary mt-3">Nível concluído!</h2>
             <p className="text-muted-foreground mt-2">
               Parabéns! Você fez 3 contas seguidas sem nenhum erro no Nível {setup.level}.
               {setup.mode === "level" && setup.level < 4 && " O próximo nível foi liberado!"}
