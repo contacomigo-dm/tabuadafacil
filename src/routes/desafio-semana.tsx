@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Celebration } from "@/components/Celebration";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
