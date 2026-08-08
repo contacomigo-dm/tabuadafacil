@@ -132,12 +132,12 @@ export function quotientHint(chunk: number, divisor: number, attempt: number): s
   if (attempt === 1) {
     // Soft hint: range
     if (correct === 0) {
-      return `Lembre: ${chunk} é menor que ${divisor}, então cabe 0 vez.`;
+      return `Lembre: ${chunk} é menor que ${divisor}, então ${chunk} dividido por ${divisor} dá 0.`;
     }
-    return `Pense: quantas vezes o ${divisor} cabe em ${chunk}? Tente um número entre ${Math.max(0, correct - 1)} e ${correct + 1}.`;
+    return `Pense: quanto é ${chunk} dividido por ${divisor}? Tente um número entre ${Math.max(0, correct - 1)} e ${correct + 1}.`;
   }
   // Stronger hint on 2nd error: show the answer
-  return `A resposta é ${correct}, porque ${correct} × ${divisor} = ${correct * divisor} (e ${correct + 1} × ${divisor} = ${(correct + 1) * divisor} já passa de ${chunk}).`;
+  return `${chunk} dividido por ${divisor} dá ${correct}, porque ${divisor} × ${correct} = ${correct * divisor} (e ${divisor} × ${correct + 1} = ${(correct + 1) * divisor} já passa de ${chunk}).`;
 }
 
 export function remainderHint(chunk: number, q: number, divisor: number, attempt: number): string {
