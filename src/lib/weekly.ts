@@ -27,13 +27,17 @@ export interface WeeklyRecord {
   completed_at: string;
 }
 
+// Formatos aceitos de desafio concluído: o atual (15+3=18) e os antigos
+// (20+5=25 e 20). Registros antigos continuam valendo como concluídos.
+const ACCEPTED_WEEKLY_TOTALS = [18, 25, 20];
+
 export function isWeeklyRecordComplete(
   record: WeeklyRecord | null | undefined,
 ): record is WeeklyRecord {
   return Boolean(
     record &&
-      record.total_questions === WEEKLY_TOTAL &&
-      record.correct_count + record.wrong_count === WEEKLY_TOTAL,
+      ACCEPTED_WEEKLY_TOTALS.includes(record.total_questions) &&
+      record.correct_count + record.wrong_count === record.total_questions,
   );
 }
 
