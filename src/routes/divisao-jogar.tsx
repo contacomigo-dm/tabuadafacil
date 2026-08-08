@@ -607,7 +607,7 @@ function PlayDivisao() {
               return (
                 <div className="text-center">
                   {isLastWeekly ? (
-                    <Celebration message="Desafio da semana concluído! Você é frade!" />
+                    <Celebration message="Desafio da semana concluído! Você é fera!" />
                   ) : (
                     <div className="text-5xl mb-2">🎉</div>
                   )}
