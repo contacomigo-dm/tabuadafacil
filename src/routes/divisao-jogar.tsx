@@ -487,11 +487,11 @@ function PlayDivisao() {
                   Passo: dividir
                 </div>
                 <h3 className="text-xl font-bold text-foreground">
-                  Quantas vezes o <span className="text-river">{plan.divisor}</span> cabe em{" "}
+                  Quanto é{" "}
                   <span className="text-accent-foreground bg-accent/40 px-2 rounded">
                     {currentStep.chunk}
-                  </span>
-                  ?
+                  </span>{" "}
+                  dividido por <span className="text-river">{plan.divisor}</span>?
                 </h3>
                 <p className="text-sm text-muted-foreground mt-2">
                   Digite 1 algarismo no quociente.
