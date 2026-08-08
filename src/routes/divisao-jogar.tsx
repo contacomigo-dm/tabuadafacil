@@ -606,8 +606,12 @@ function PlayDivisao() {
                 weeklyIdxRef.current + 1 >= weeklySetup.setups.length;
               return (
                 <div className="text-center">
-                  <div className="text-5xl mb-2">🎉</div>
-                  <h3 className="text-2xl font-extrabold text-primary">
+                  {isLastWeekly ? (
+                    <Celebration message="Desafio da semana concluído! Você é frade!" />
+                  ) : (
+                    <div className="text-5xl mb-2">🎉</div>
+                  )}
+                  <h3 className="text-2xl font-extrabold text-primary mt-2">
                     {isLastWeekly ? "Desafio concluído!" : "Conta pronta!"}
                   </h3>
                   <div className="mt-3 bg-primary/10 rounded-xl p-4 text-left">
