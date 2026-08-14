@@ -147,9 +147,8 @@ export async function getWeeklyRecord(
 // truncava o extrato por período e escondia semanas já concluídas.
 const PAGE_SIZE = 1000;
 
-async function fetchAllPages(
-  build: () => ReturnType<typeof supabase.from>["select"] extends never ? never : any,
-): Promise<WeeklyRecord[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAllPages(build: () => any): Promise<WeeklyRecord[]> {
   const all: WeeklyRecord[] = [];
   for (let page = 0; ; page++) {
     const { data, error } = await build().range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
