@@ -143,14 +143,32 @@ export async function getWeeklyRecord(
   return (data as WeeklyRecord | null) ?? null;
 }
 
+// Busca paginada: o backend limita a 1000 linhas por requisição, o que
+// truncava o extrato por período e escondia semanas já concluídas.
+const PAGE_SIZE = 1000;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAllPages(build: () => any): Promise<WeeklyRecord[]> {
+  const all: WeeklyRecord[] = [];
+  for (let page = 0; ; page++) {
+    const { data, error } = await build().range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as WeeklyRecord[];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return all;
+}
+
 export async function listWeeklyRecordsForWeek(year: number, week: number): Promise<WeeklyRecord[]> {
-  const { data, error } = await supabase
-    .from("weekly_challenges")
-    .select("*")
-    .eq("year", year)
-    .eq("week", week);
-  if (error) throw error;
-  return (data ?? []) as WeeklyRecord[];
+  return fetchAllPages(() =>
+    supabase
+      .from("weekly_challenges")
+      .select("*")
+      .eq("year", year)
+      .eq("week", week)
+      .order("student_id", { ascending: true }),
+  );
 }
 
 export async function listWeeklyRecordsForPeriod(
@@ -160,15 +178,16 @@ export async function listWeeklyRecordsForPeriod(
 ): Promise<WeeklyRecord[]> {
   const from = Math.min(startWeek, endWeek);
   const to = Math.max(startWeek, endWeek);
-  const { data, error } = await supabase
-    .from("weekly_challenges")
-    .select("*")
-    .eq("year", year)
-    .gte("week", from)
-    .lte("week", to)
-    .order("week", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as WeeklyRecord[];
+  return fetchAllPages(() =>
+    supabase
+      .from("weekly_challenges")
+      .select("*")
+      .eq("year", year)
+      .gte("week", from)
+      .lte("week", to)
+      .order("week", { ascending: true })
+      .order("student_id", { ascending: true }),
+  );
 }
 
 export async function listWeeklyRecords(studentId: string): Promise<WeeklyRecord[]> {
